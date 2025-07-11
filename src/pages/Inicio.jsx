@@ -15,21 +15,21 @@ const Inicio = () => {
   const [deleting, setDeleting] = useState(false);
 
   // Carregar livros da API
-  useEffect(() => {
-    const fetchBooks = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const books = await getBooks();
-        setLivros(books);
-      } catch (err) {
-        setError('Erro ao carregar livros');
-        console.error('Erro ao buscar livros:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchBooks = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const books = await getBooks();
+      setLivros(books);
+    } catch (err) {
+      setError(err.message || 'Erro ao carregar livros');
+      console.error('Erro ao buscar livros:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchBooks();
   }, []);
 
@@ -124,7 +124,7 @@ const Inicio = () => {
           <h3>Oops! Algo deu errado</h3>
           <p>{error}</p>
           <p className="error-details">Verifique sua conexão com a internet ou tente novamente em alguns instantes.</p>
-          <button className="retry-button" onClick={() => window.location.reload()}>
+          <button className="retry-button" onClick={fetchBooks}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="23 4 23 10 17 10"></polyline>
               <polyline points="1 20 1 14 7 14"></polyline>

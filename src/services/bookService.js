@@ -1,22 +1,9 @@
-// Serviço da API
-const API_BASE_URL = 'https://api-geodua.onrender.com/api';
+import { apiClient } from './api.js';
 
 // Função para criar um novo livro
 export const createBook = async (nome) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/livros`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ nome }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Erro na API: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await apiClient.post('/livros', { nome });
     return data;
   } catch (error) {
     console.error('Erro ao criar livro:', error);
@@ -27,13 +14,7 @@ export const createBook = async (nome) => {
 // Função para buscar livros
 export const getBooks = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/livros`);
-    
-    if (!response.ok) {
-      throw new Error(`Erro na API: ${response.status}`);
-    }
-
-    const result = await response.json();
+    const result = await apiClient.get('/livros');
     
     // Se a API retorna um objeto com 'data', extrair o array
     if (result.data && Array.isArray(result.data)) {
@@ -51,19 +32,7 @@ export const getBooks = async () => {
 // Função para atualizar um livro
 export const updateBook = async (id, nome) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/livros/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ nome }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Erro na API: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await apiClient.put(`/livros/${id}`, { nome });
     return data;
   } catch (error) {
     console.error('Erro ao atualizar livro:', error);
@@ -74,15 +43,7 @@ export const updateBook = async (id, nome) => {
 // Função para deletar um livro
 export const deleteBook = async (id) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/livros/${id}`, {
-      method: 'DELETE',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Erro na API: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await apiClient.delete(`/livros/${id}`);
     return data;
   } catch (error) {
     console.error('Erro ao deletar livro:', error);
