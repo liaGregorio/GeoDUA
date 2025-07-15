@@ -1,7 +1,10 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 function Layout() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(() => {
     // Recupera a preferência salva ou usa false como padrão
     const saved = localStorage.getItem('darkMode');
@@ -47,6 +50,12 @@ function Layout() {
     } else {
       document.body.classList.remove('dark-mode');
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+    setMenuOpen(false);
   };
 
   return (
@@ -106,15 +115,40 @@ function Layout() {
               
               {menuOpen && (
                 <div className="dropdown-menu">
-                  <button 
-                    className="dropdown-item"
-                    onClick={() => {
-                      setEditMode(!editMode);
-                      setMenuOpen(false);
-                    }}
-                  >
-                    {editMode ? 'Visualizar livros' : 'Editar livros'}
-                  </button>
+                  {user ? (
+                    <>
+                      <div className="dropdown-user-info">
+                        <span className="user-name">{user.nome ? user.nome.split(' ')[0] : 'Usuário'}</span>
+                      </div>
+                      {user.tipoUsuario.id === 1 && (
+                        <button 
+                          className="dropdown-item"
+                          onClick={() => {
+                            setEditMode(!editMode);
+                            setMenuOpen(false);
+                          }}
+                        >
+                          {editMode ? 'Visualizar livros' : 'Editar livros'}
+                        </button>
+                      )}
+                      <button 
+                        className="dropdown-item logout-item"
+                        onClick={handleLogout}
+                      >
+                        Sair
+                      </button>
+                    </>
+                  ) : (
+                    <button 
+                      className="dropdown-item"
+                      onClick={() => {
+                        navigate('/login');
+                        setMenuOpen(false);
+                      }}
+                    >
+                      Fazer login
+                    </button>
+                  )}
                 </div>
               )}
             </div>

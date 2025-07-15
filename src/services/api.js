@@ -1,13 +1,47 @@
+import axios from 'axios';
+
 // Configuração da API
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api-geodua.onrender.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const API_KEY = import.meta.env.VITE_API_KEY;
 
-// Validação da API Key
-if (!API_KEY) {
-  console.error('⚠️  API Key não encontrada! Verifique o arquivo .env');
-}
+// Criar instância do axios
+export const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+    ...(API_KEY && { 'X-API-Key': API_KEY }),
+  },
+});
 
-// Cliente HTTP básico
+// Interceptador para adicionar token de autenticação
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Interceptador para lidar com respostas de erro
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expirado ou inválido
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Cliente HTTP básico (mantido para compatibilidade)
 export const apiClient = {
   async request(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
