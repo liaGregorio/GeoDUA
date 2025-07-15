@@ -1081,7 +1081,7 @@ body.dark-mode .error-details {
 }
 
 .auth-footer p {
-  color: #333;
+  color: white;
   margin: 0;
   font-size: 14px;
 }
@@ -1259,7 +1259,25 @@ body.dark-mode .auth-input::placeholder {
 }
 
 body.dark-mode .auth-footer p {
-  color: #f5f5f5;
+  color: #333;
+}
+
+body.dark-mode .auth-card:not(.register-card) .auth-footer a {
+  color: #333;
+  font-weight: bold;
+}
+
+body.dark-mode .auth-card:not(.register-card) .auth-footer a:hover {
+  color: #555;
+}
+
+body.dark-mode .register-card .auth-footer a {
+  color: #333;
+  font-weight: bold;
+}
+
+body.dark-mode .register-card .auth-footer a:hover {
+  color: #555;
 }
 
 /* Dark mode button styles */
