@@ -148,7 +148,7 @@ const Inicio = () => {
 
       {/* Grid de livros */}
       {!loading && !error && (
-        <div className="books-grid">
+        <div className={`books-grid ${editMode ? 'edit-mode' : ''}`}>
           {livrosFiltrados.map((livro) => (
             <div key={livro.id} className={`book-container ${editMode ? 'edit-mode' : ''}`}>
               {editMode && (

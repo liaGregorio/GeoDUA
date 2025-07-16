@@ -140,8 +140,14 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 20px;
-  flex: 1;
   margin-bottom: 40px;
+  align-items: start; /* Alinha os itens no topo */
+  grid-auto-rows: min-content; /* Faz as linhas se ajustarem ao conteúdo */
+}
+
+/* Ajustar grid no modo de edição */
+.books-grid.edit-mode {
+  grid-auto-rows: 304px; /* Altura fixa no modo de edição desktop */
 }
 
 .book-card {
@@ -876,6 +882,18 @@ body.dark-mode .error-details {
 /* Container para os livros no modo de edição */
 .book-container {
   position: relative;
+  height: 280px; /* Mesma altura do book-card */
+}
+
+.capitulo-container {
+  position: relative;
+  height: 280px; /* Mesma altura do capitulo-card */
+}
+
+/* Ajustar altura no modo de edição no desktop */
+.book-container.edit-mode,
+.capitulo-container.edit-mode {
+  height: 304px; /* 280px + 24px de margin-top do botão de editar */
 }
 
 /* Capítulos styles */
@@ -939,8 +957,14 @@ body.dark-mode .error-details {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 20px;
-  flex: 1;
   margin-bottom: 40px;
+  align-items: start; /* Alinha os itens no topo */
+  grid-auto-rows: min-content; /* Faz as linhas se ajustarem ao conteúdo */
+}
+
+/* Ajustar grid no modo de edição */
+.capitulos-grid.edit-mode {
+  grid-auto-rows: 304px; /* Altura fixa no modo de edição desktop */
 }
 
 .capitulo-container {
@@ -1565,20 +1589,40 @@ body.dark-mode .auth-copyright {
   .books-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 15px;
+    align-items: start; /* Alinha os itens no topo no mobile */
+  }
+  
+  /* Ajustar grid no modo de edição no mobile */
+  .books-grid.edit-mode {
+    grid-auto-rows: 240px; /* Altura fixa no modo de edição mobile */
   }
   
   .book-card {
     height: 220px;
   }
   
+  .book-container {
+    height: 220px; /* Mesma altura do book-card no mobile */
+  }
+  
   /* Grid de capítulos no mobile */
   .capitulos-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 15px;
+    align-items: start; /* Alinha os itens no topo no mobile */
+  }
+  
+  /* Ajustar grid no modo de edição no mobile */
+  .capitulos-grid.edit-mode {
+    grid-auto-rows: 240px; /* Altura fixa no modo de edição mobile */
   }
   
   .capitulo-card {
     height: 220px;
+  }
+  
+  .capitulo-container {
+    height: 220px; /* Mesma altura do capitulo-card no mobile */
   }
   
   /* Ajustar posição do botão de editar e card no mobile */
@@ -1595,6 +1639,18 @@ body.dark-mode .auth-copyright {
   }
   
   .capitulo-container.edit-mode .capitulo-card {
+    margin-top: 20px;
+  }
+  
+  /* Ajustar altura do container no modo de edição para acomodar o margin-top */
+  .book-container.edit-mode,
+  .capitulo-container.edit-mode {
+    height: 240px; /* 220px + 20px de margin-top */
+  }
+  
+  /* Ajustar posição do botão de adicionar no mobile quando em modo edição */
+  .edit-mode .add-book,
+  .edit-mode .add-capitulo {
     margin-top: 20px;
   }
 }

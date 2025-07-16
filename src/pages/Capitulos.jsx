@@ -172,7 +172,7 @@ const Capitulos = () => {
 
       {/* Grid de capítulos */}
       {!loading && !error && (
-        <div className="capitulos-grid">
+        <div className={`capitulos-grid ${editMode ? 'edit-mode' : ''}`}>
           {capitulosFiltrados.map((capitulo) => (
             <div key={capitulo.id} className={`capitulo-container ${editMode ? 'edit-mode' : ''}`}>
               {editMode && canManageCapitulos && (
