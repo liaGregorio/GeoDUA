@@ -1,10 +1,11 @@
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [darkMode, setDarkMode] = useState(() => {
     // Recupera a preferência salva ou usa false como padrão
     const saved = localStorage.getItem('darkMode');
@@ -13,6 +14,14 @@ function Layout() {
   const [searchTerm, setSearchTerm] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Verificar se estamos na página de capítulos
+  const isCapitulosPage = location.pathname.includes('/capitulos');
+  
+  // Texto do botão de editar baseado na página atual
+  const editButtonText = isCapitulosPage 
+    ? (editMode ? 'Visualizar capítulos' : 'Editar capítulos')
+    : (editMode ? 'Visualizar livros' : 'Editar livros');
 
   // Aplicar o modo dark no body quando o componente montar
   useEffect(() => {
@@ -138,7 +147,7 @@ function Layout() {
                             setMenuOpen(false);
                           }}
                         >
-                          {editMode ? 'Visualizar livros' : 'Editar livros'}
+                          {editButtonText}
                         </button>
                       )}
                       <button 

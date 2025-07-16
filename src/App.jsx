@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Inicio from './pages/Inicio';
+import Capitulos from './pages/Capitulos';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/" element={<Layout />}>
             <Route index element={<Inicio />} />
             <Route path="inicio" element={<Inicio />} />
+            <Route path="livro/:id/capitulos" element={<Capitulos />} />
           </Route>
         </Routes>
       </Router>

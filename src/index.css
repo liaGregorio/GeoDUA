@@ -477,7 +477,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 50px;
+  height: 300px;
   text-align: center;
   background: white;
   border-radius: 12px;
@@ -619,8 +619,12 @@ body.dark-mode .error-details {
 }
 
 .dark-mode .add-book {
-  background-color: #FFB89A;
+  background-color: rgba(255, 145, 77, 0.3);
   border-color: #FF914D;
+}
+
+.dark-mode .add-book .add-icon {
+  color: #FF914D;
 }
 
 .dark-mode .copyright {
@@ -680,6 +684,37 @@ body.dark-mode .error-details {
 .dark-mode .cancel-button:hover {
   background: #1a1a1a;
   border-color: #6b7280;
+}
+
+/* Dark mode delete modal styles */
+.dark-mode .delete-modal-content {
+  background: #1d1d1d;
+  color: white;
+}
+
+.dark-mode .delete-modal-header {
+  border-bottom-color: #4b5563;
+}
+
+.dark-mode .delete-modal-header h2 {
+  color: white;
+}
+
+.dark-mode .delete-modal-icon {
+  background-color: #7f1d1d;
+  color: #fca5a5;
+}
+
+.dark-mode .delete-warning {
+  color: white;
+}
+
+.dark-mode .delete-warning strong {
+  color: #fca5a5;
+}
+
+.dark-mode .delete-description {
+  color: #d1d5db;
 }
 
 /* Dropdown menu */
@@ -841,6 +876,180 @@ body.dark-mode .error-details {
 /* Container para os livros no modo de edição */
 .book-container {
   position: relative;
+}
+
+/* Capítulos styles */
+.capitulos-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 140px);
+}
+
+.capitulos-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.voltar-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #519271;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.voltar-button:hover {
+  background: #3d6d54;
+  transform: translateY(-1px);
+}
+
+.capitulos-title {
+  text-align: center;
+  flex: 1;
+}
+
+.capitulos-title h1 {
+  font-size: 28px;
+  font-weight: 600;
+  color: #1d1d1d;
+  margin: 0;
+}
+
+.capitulos-title h2 {
+  font-size: 20px;
+  font-weight: 400;
+  color: #666;
+  margin: 5px 0 0 0;
+}
+
+.capitulos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+  flex: 1;
+  margin-bottom: 40px;
+}
+
+.capitulo-container {
+  position: relative;
+}
+
+.capitulo-card {
+  background-color: #FF914D;
+  border-radius: 12px;
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.capitulo-container:hover .capitulo-card {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.capitulo-container:hover .edit-button {
+  transform: translateY(-2px);
+}
+
+.capitulo-card.edit-mode {
+  border-top-left-radius: 0;
+}
+
+.capitulo-content {
+  text-align: center;
+  color: white;
+  padding: 20px;
+}
+
+.capitulo-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  word-wrap: break-word;
+}
+
+.capitulo-info {
+  font-size: 14px;
+  opacity: 0.9;
+  margin: 0;
+  font-style: italic;
+}
+
+.add-capitulo {
+  background-color: rgba(255, 145, 77, 0.3);
+  border: 2px dashed #FF914D;
+  justify-content: center;
+  align-items: center;
+}
+
+.add-capitulo-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.add-icon {
+  color: #FF914D;
+  opacity: 0.8;
+}
+
+.add-capitulo:hover .add-icon {
+  opacity: 1;
+  color: #E67E22;
+}
+
+/* Dark mode para capítulos */
+.dark-mode .capitulos-title h1 {
+  color: white;
+}
+
+.dark-mode .capitulos-title h2 {
+  color: #ccc;
+}
+
+.dark-mode .capitulos-header {
+  border-bottom-color: #404040;
+}
+
+.dark-mode .voltar-button {
+  background: #2d5742;
+  color: white;
+}
+
+.dark-mode .voltar-button:hover {
+  background: #234434;
+}
+
+.dark-mode .capitulo-card {
+  background-color: #FF914D;
+}
+
+.dark-mode .add-capitulo {
+  background-color: rgba(255, 145, 77, 0.3);
+  border-color: #FF914D;
+}
+
+.dark-mode .add-capitulo .add-icon {
+  color: #FF914D;
 }
 
 /* Responsive */
@@ -1360,5 +1569,32 @@ body.dark-mode .auth-copyright {
   
   .book-card {
     height: 220px;
+  }
+  
+  /* Grid de capítulos no mobile */
+  .capitulos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+  }
+  
+  .capitulo-card {
+    height: 220px;
+  }
+  
+  /* Ajustar posição do botão de editar e card no mobile */
+  .book-container.edit-mode .edit-button {
+    margin-top: 20px;
+  }
+  
+  .book-container.edit-mode .book-card {
+    margin-top: 20px;
+  }
+  
+  .capitulo-container.edit-mode .edit-button {
+    margin-top: 20px;
+  }
+  
+  .capitulo-container.edit-mode .capitulo-card {
+    margin-top: 20px;
   }
 }

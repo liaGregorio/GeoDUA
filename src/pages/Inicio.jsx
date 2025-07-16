@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import AddBookModal from '../components/AddBookModal';
 import DeleteBookModal from '../components/DeleteBookModal';
 import { createBook, getBooks, updateBook, deleteBook } from '../services/bookService';
 
 const Inicio = () => {
+  const { user } = useAuth();
   const { searchTerm, editMode } = useOutletContext();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBook, setEditingBook] = useState(null);
   const [livros, setLivros] = useState([]);
@@ -13,6 +16,9 @@ const Inicio = () => {
   const [error, setError] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, book: null });
   const [deleting, setDeleting] = useState(false);
+
+  // Verificar se o usuário pode adicionar livros
+  const canAddBooks = user && user.tipoUsuario && user.tipoUsuario.id === 1;
 
   // Carregar livros da API
   const fetchBooks = async () => {
@@ -102,6 +108,11 @@ const Inicio = () => {
     setIsModalOpen(true);
   };
 
+  const handleLivroClick = (livro) => {
+    // Sempre permitir navegar para os capítulos, independente do modo de edição
+    navigate(`/livro/${livro.id}/capitulos`);
+  };
+
   return (
     <div className="inicio-container">
       {/* Loading state */}
@@ -143,17 +154,23 @@ const Inicio = () => {
               {editMode && (
                 <button 
                   className="edit-button"
-                  onClick={() => openEditModal(livro)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEditModal(livro);
+                  }}
                   title="Editar livro"
                 >
                   Editar
                 </button>
               )}
-              <div className={`book-card ${editMode ? 'edit-mode' : ''}`}>
+              <div className={`book-card ${editMode ? 'edit-mode' : ''}`} onClick={() => handleLivroClick(livro)}>
                 {editMode && (
                   <button 
                     className="delete-button"
-                    onClick={() => handleDeleteBook(livro)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteBook(livro);
+                    }}
                     title="Excluir livro"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -171,24 +188,31 @@ const Inicio = () => {
             </div>
           ))}
           
-          {/* Card para adicionar novo livro */}
-          <div className="book-card add-book" onClick={adicionarLivro}>
-            <div className="add-book-content">
-              <div className="add-icon">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
+          {/* Card para adicionar novo livro - apenas para usuários com tipoUsuario.id === 1 */}
+          {canAddBooks && (
+            <div className="book-card add-book" onClick={adicionarLivro}>
+              <div className="add-book-content">
+                <div className="add-icon">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
       {/* Mensagem quando não há livros */}
       {!loading && !error && livros.length === 0 && (
         <div className="no-results">
-          <p>Nenhum livro cadastrado. Clique no botão + para adicionar o primeiro livro!</p>
+          <p>
+            {canAddBooks 
+              ? "Nenhum livro cadastrado. Clique no botão + para adicionar o primeiro livro!"
+              : "Nenhum livro cadastrado."
+            }
+          </p>
         </div>
       )}
 
@@ -199,17 +223,19 @@ const Inicio = () => {
         </div>
       )}
 
-      {/* Modal para adicionar/editar livro */}
-      <AddBookModal 
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingBook(null);
-        }}
-        onSave={editingBook ? handleEditBook : handleAddBook}
-        initialValue={editingBook ? editingBook.nome : ''}
-        title={editingBook ? 'Editar Livro' : 'Adicionar Novo Livro'}
-      />
+      {/* Modal para adicionar/editar livro - apenas para usuários com tipoUsuario.id === 1 */}
+      {canAddBooks && (
+        <AddBookModal 
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingBook(null);
+          }}
+          onSave={editingBook ? handleEditBook : handleAddBook}
+          initialValue={editingBook ? editingBook.nome : ''}
+          title={editingBook ? 'Editar Livro' : 'Adicionar Novo Livro'}
+        />
+      )}
 
       {/* Modal para confirmar exclusão */}
       <DeleteBookModal
