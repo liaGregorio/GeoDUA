@@ -25,8 +25,6 @@ const DeleteSecaoModal = ({ isOpen, onClose, onDelete, secao }) => {
           <p>Tem certeza que deseja excluir a seção?</p>
           <div className="delete-info">
             <strong>Título:</strong> {secao.titulo || 'Sem título'}
-            <br />
-            <strong>Ordem:</strong> {secao.ordem}
           </div>
           <p className="warning-text">
             ⚠️ Esta ação não pode ser desfeita. Todas as imagens da seção também serão removidas.

@@ -4,7 +4,7 @@ import { useImageUpload } from '../hooks/useImageUpload';
 const AddImagemModal = ({ isOpen, onClose, onAdd, idSecao }) => {
   const [formData, setFormData] = useState({
     descricao: '',
-    ordem: 1,
+    ordem: 0,
     arquivo: null
   });
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -63,7 +63,7 @@ const AddImagemModal = ({ isOpen, onClose, onAdd, idSecao }) => {
       const imagemData = {
         ...processedImage,
         descricao: formData.descricao,
-        ordem: parseInt(formData.ordem),
+        ordem: parseInt(formData.ordem) || 0,
         id_secao: idSecao
       };
 
@@ -71,7 +71,7 @@ const AddImagemModal = ({ isOpen, onClose, onAdd, idSecao }) => {
       
       setFormData({
         descricao: '',
-        ordem: 1,
+        ordem: 0,
         arquivo: null
       });
       
@@ -167,19 +167,6 @@ const AddImagemModal = ({ isOpen, onClose, onAdd, idSecao }) => {
               onChange={handleChange}
               placeholder="Digite uma descrição para a imagem"
               rows="3"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="ordem">Ordem *</label>
-            <input
-              type="number"
-              id="ordem"
-              name="ordem"
-              value={formData.ordem}
-              onChange={handleChange}
-              min="1"
-              required
             />
           </div>
 
