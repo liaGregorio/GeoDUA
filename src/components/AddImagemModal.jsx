@@ -4,7 +4,7 @@ import { useImageUpload } from '../hooks/useImageUpload';
 const AddImagemModal = ({ isOpen, onClose, onAdd, idSecao }) => {
   const [formData, setFormData] = useState({
     descricao: '',
-    ordem: 0,
+    ordem: 1,
     arquivo: null
   });
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -63,7 +63,7 @@ const AddImagemModal = ({ isOpen, onClose, onAdd, idSecao }) => {
       const imagemData = {
         ...processedImage,
         descricao: formData.descricao,
-        ordem: parseInt(formData.ordem) || 0,
+        ordem: parseInt(formData.ordem) || 1,
         id_secao: idSecao
       };
 
@@ -71,7 +71,7 @@ const AddImagemModal = ({ isOpen, onClose, onAdd, idSecao }) => {
       
       setFormData({
         descricao: '',
-        ordem: 0,
+        ordem: 1,
         arquivo: null
       });
       
