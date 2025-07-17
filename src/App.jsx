@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Inicio from './pages/Inicio';
 import Capitulos from './pages/Capitulos';
+import Secoes from './pages/Secoes';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
             <Route index element={<Inicio />} />
             <Route path="inicio" element={<Inicio />} />
             <Route path="livro/:id/capitulos" element={<Capitulos />} />
+            <Route path="livro/:livroId/capitulo/:capituloId/secoes" element={<Secoes />} />
           </Route>
         </Routes>
       </Router>

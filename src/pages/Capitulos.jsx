@@ -199,7 +199,11 @@ const Capitulos = () => {
                     </svg>
                   </button>
                 )}
-                <div className="capitulo-content">
+                <div 
+                  className="capitulo-content"
+                  onClick={() => navigate(`/livro/${id}/capitulo/${capitulo.id}/secoes`)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <h3 className="capitulo-title">{capitulo.nome}</h3>
                   <p className="capitulo-info">
                     Por: {capitulo.usuario?.nome || 'Desconhecido'}
