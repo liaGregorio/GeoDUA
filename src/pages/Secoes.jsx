@@ -7,6 +7,7 @@ import { getCapitulos } from '../services/capituloService';
 import { processImageData } from '../utils/imageUtils';
 import DeleteSecaoModal from '../components/DeleteSecaoModal';
 import AddImagemModal from '../components/AddImagemModal';
+import ConfirmDiscardModal from '../components/ConfirmDiscardModal';
 
 const Secoes = () => {
   const { livroId, capituloId } = useParams();
@@ -30,6 +31,7 @@ const Secoes = () => {
   // Estados dos modais (manter apenas para imagens)
   const [showDeleteSecaoModal, setShowDeleteSecaoModal] = useState(false);
   const [showAddImagemModal, setShowAddImagemModal] = useState(false);
+  const [showConfirmDiscardModal, setShowConfirmDiscardModal] = useState(false);
   const [selectedSecao, setSelectedSecao] = useState(null);
   const [selectedSecaoForImage, setSelectedSecaoForImage] = useState(null);
 
@@ -125,15 +127,33 @@ const Secoes = () => {
     navigate(`/livro/${livroId}/capitulos`);
   };
 
-  const handleUpdateSecao = async (secaoId, field, value) => {
-    try {
-      const updateData = { [field]: value };
-      await updateSecao(secaoId, updateData);
-      await fetchSecoes();
-    } catch (error) {
-      console.error('Erro ao atualizar seção:', error);
-      alert('Erro ao atualizar seção. Tente novamente.');
+  const handleUpdateSecao = (secaoId, field, value) => {
+    // Encontrar a seção existente
+    const secaoExistenteIndex = secoesEditadas.findIndex(s => s.id === secaoId);
+    
+    if (secaoExistenteIndex >= 0) {
+      // Atualizar seção já em edição
+      setSecoesEditadas(prev => prev.map(secao => 
+        secao.id === secaoId ? { ...secao, [field]: value } : secao
+      ));
+    } else {
+      // Adicionar nova seção à lista de editadas
+      const secaoOriginal = secoes.find(s => s.id === secaoId);
+      if (secaoOriginal) {
+        const secaoEditada = { ...secaoOriginal, [field]: value };
+        setSecoesEditadas(prev => [...prev, secaoEditada]);
+      }
     }
+  };
+
+  // Função helper para obter o valor atual de uma seção (editada ou original)
+  const getSecaoValue = (secaoId, field) => {
+    const secaoEditada = secoesEditadas.find(s => s.id === secaoId);
+    if (secaoEditada) {
+      return secaoEditada[field];
+    }
+    const secaoOriginal = secoes.find(s => s.id === secaoId);
+    return secaoOriginal ? secaoOriginal[field] : '';
   };
 
   const handleAddImagem = async (secaoId, file) => {
@@ -195,6 +215,104 @@ const Secoes = () => {
   };
 
   // Função para renderizar conteúdo da seção para usuários não logados
+  const renderSecaoContentUser = (secao) => {
+    // Organizar todos os elementos da seção por ordem
+    const items = [];
+
+    // Adicionar conteúdo original se existir
+    if (secao.original && secao.original.trim() !== '') {
+      items.push({
+        type: 'original',
+        content: secao.original,
+        ordem: secao.ordem || 1
+      });
+    }
+
+    // Adicionar link 3D se existir
+    if (secao.link3d && secao.link3d.trim() !== '') {
+      items.push({
+        type: 'link3d',
+        content: secao.link3d,
+        ordem: secao.ordem3d || 2
+      });
+    }
+
+    // Adicionar imagens se existirem
+    const imagens = secaoImages[secao.id] || [];
+    if (imagens.length > 0) {
+      imagens.forEach(imagem => {
+        items.push({
+          type: 'imagem',
+          content: imagem,
+          ordem: imagem.ordem || 3
+        });
+      });
+    }
+
+    // Ordenar items por ordem
+    items.sort((a, b) => a.ordem - b.ordem);
+
+    return (
+      <div className="secao-content-user">
+        {items.map((item, index) => (
+          <div key={`${item.type}-${index}`} className="secao-content-element">
+            {item.type === 'original' && (
+              <div className="secao-texto">
+                {item.content.split('\n').map((paragraph, pIndex) => (
+                  paragraph.trim() !== '' && <p key={pIndex}>{paragraph}</p>
+                ))}
+              </div>
+            )}
+            {item.type === 'link3d' && (
+              <div className="secao-link3d-user">
+                <a 
+                  href={item.content} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="link-3d-button"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15,3 21,3 21,9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
+                  Ver modelo 3D
+                </a>
+              </div>
+            )}
+            {item.type === 'imagem' && (
+              <div className="secao-imagem-user">
+                {(() => {
+                  const processedImage = processImageData(item.content);
+                  return processedImage ? (
+                    <div className="image-container">
+                      <img 
+                        src={processedImage.src} 
+                        alt={processedImage.descricao || 'Imagem'} 
+                        onError={(e) => {
+                          console.error('Erro ao carregar imagem:', e);
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                      {processedImage.descricao && processedImage.descricao !== item.content.id.toString() && (
+                        <p className="image-caption">{processedImage.descricao}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="image-error">
+                      <p>Erro ao carregar imagem</p>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // Função para renderizar conteúdo da seção para usuários não logados (função antiga - mantida para compatibilidade)
   const renderSecaoContent = (secao) => {
     if (canManageSecoes) {
       return renderSecaoContentAdmin(secao);
@@ -281,24 +399,23 @@ const Secoes = () => {
   const renderSecaoContentAdmin = (secao) => {
     return (
       <div className="secao-content">
-        {secao.original && (
-          <div className="secao-text">
-            <h4>Conteúdo:</h4>
-            <textarea
-              value={secao.original}
-              onChange={(e) => handleUpdateSecao(secao.id, 'original', e.target.value)}
-              className="secao-content-input"
-              rows="6"
-            />
-          </div>
-        )}
+        <div className="secao-text">
+          <h4>Conteúdo:</h4>
+          <textarea
+            value={getSecaoValue(secao.id, 'original') || ''}
+            onChange={(e) => handleUpdateSecao(secao.id, 'original', e.target.value)}
+            className="secao-content-input"
+            rows="6"
+            placeholder="Digite o conteúdo da seção"
+          />
+        </div>
 
         {/* Campo Link 3D */}
         <div className="secao-link3d">
           <h4>Link 3D:</h4>
           <input
             type="url"
-            value={secao.link3d || ''}
+            value={getSecaoValue(secao.id, 'link3d') || ''}
             onChange={(e) => handleUpdateSecao(secao.id, 'link3d', e.target.value)}
             className="secao-link3d-input"
             placeholder="https://..."
@@ -499,6 +616,15 @@ const Secoes = () => {
     }
   };
 
+  const descartarAlteracoes = () => {
+    setShowConfirmDiscardModal(true);
+  };
+
+  const confirmarDescarte = () => {
+    setSecoesEditadas([]);
+    setNovasSecoes([]);
+  };
+
   const salvarComoRascunho = async () => {
     // TODO: Implementar lógica para criar capítulo de rascunho
     alert('Funcionalidade de rascunho será implementada em breve');
@@ -543,8 +669,7 @@ const Secoes = () => {
         </button>
         
         <div className="secoes-title">
-          <h1>Seções</h1>
-          {capitulo && <h2>{capitulo.nome}</h2>}
+          {capitulo && <h1>{capitulo.nome}</h1>}
         </div>
       </div>
 
@@ -582,36 +707,45 @@ const Secoes = () => {
       {/* Lista de seções */}
       {!loading && !error && (
         <div className="secoes-list">
-          {/* Seções existentes */}
-          {secoesFiltradas.map((secao) => (
-            <div 
-              key={secao.id} 
-              className={`secao-card ${expandedSecao === secao.id ? 'expanded' : ''}`}
-              onClick={() => !canManageSecoes && handleExpandSecao(secao.id)}
-            >
-              {canManageSecoes ? (
-                <>
+          {canManageSecoes ? (
+            <>
+              {/* Seções existentes para admin */}
+              {secoesFiltradas.map((secao) => (
+                <div 
+                  key={secao.id} 
+                  className={`secao-card ${expandedSecao === secao.id ? 'expanded' : ''} ${secoesEditadas.find(s => s.id === secao.id) ? 'secao-editada' : ''}`}
+                >
                   <div className="secao-header">
                     <div className="secao-info">
-                      <h3 className="secao-titulo">
+                      <div className="form-group">
+                        <label>Título</label>
                         <input
                           type="text"
-                          value={secao.titulo || ''}
+                          value={getSecaoValue(secao.id, 'titulo') || ''}
                           onChange={(e) => handleUpdateSecao(secao.id, 'titulo', e.target.value)}
                           className="secao-titulo-input"
                           onClick={(e) => e.stopPropagation()}
+                          placeholder="Título da seção"
                         />
-                      </h3>
-                      {secao.resumo && (
-                        <p className="secao-resumo">
-                          <textarea
-                            value={secao.resumo}
-                            onChange={(e) => handleUpdateSecao(secao.id, 'resumo', e.target.value)}
-                            className="secao-resumo-input"
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </p>
-                      )}
+                        {secoesEditadas.find(s => s.id === secao.id) && (
+                          <span className="edit-indicator" title="Alterações não salvas">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <circle cx="12" cy="12" r="10"></circle>
+                            </svg>
+                          </span>
+                        )}
+                      </div>
+                      <div className="form-group">
+                        <label>Resumo</label>
+                        <textarea
+                          value={getSecaoValue(secao.id, 'resumo') || ''}
+                          onChange={(e) => handleUpdateSecao(secao.id, 'resumo', e.target.value)}
+                          className="secao-resumo-input"
+                          onClick={(e) => e.stopPropagation()}
+                          placeholder="Digite um resumo da seção"
+                          rows="3"
+                        />
+                      </div>
                     </div>
                     
                     <div className="secao-actions">
@@ -633,125 +767,132 @@ const Secoes = () => {
                     </div>
                   </div>
                   {renderSecaoContentAdmin(secao)}
-                </>
-              ) : (
-                <>
-                  {/* Mostrar apenas título inicialmente */}
-                  <div className="secao-preview">
-                    <h3 className="secao-titulo">
-                      {secao.titulo || 'Sem título'}
-                      <span className={`expand-indicator ${expandedSecao === secao.id ? 'rotated' : ''}`}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <polyline points="6,9 12,15 18,9"></polyline>
-                        </svg>
-                      </span>
-                    </h3>
-                    {secao.resumo && (
-                      <p className="secao-resumo">{secao.resumo}</p>
-                    )}
-                  </div>
-                  
-                  {/* Mostrar conteúdo completo quando expandido */}
-                  {expandedSecao === secao.id && (
-                    <div className="secao-expanded-content">
-                      {renderSecaoContent(secao)}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          ))}
+                </div>
+              ))}
 
-          {/* Novas seções (edição inline para admins) */}
-          {canManageSecoes && novasSecoes.map((secao) => (
-            <div key={secao.id} className="secao-card secao-card-nova">
-              <div className="secao-header">
-                <div className="secao-info">
-                  <h3 className="secao-titulo">
-                    <input
-                      type="text"
-                      value={secao.titulo || ''}
-                      onChange={(e) => atualizarNovaSecao(secao.id, 'titulo', e.target.value)}
-                      className="secao-titulo-input"
-                      placeholder="Título da nova seção"
-                    />
-                  </h3>
-                  <div className="form-group">
-                    <label>Resumo</label>
-                    <textarea
-                      value={secao.resumo || ''}
-                      onChange={(e) => atualizarNovaSecao(secao.id, 'resumo', e.target.value)}
-                      placeholder="Digite um resumo da seção"
-                      rows="3"
-                    />
+              {/* Novas seções (edição inline para admins) */}
+              {novasSecoes.map((secao) => (
+                <div key={secao.id} className="secao-card secao-card-nova">
+                  <div className="secao-header">
+                    <div className="secao-info">
+                      <div className="form-group">
+                        <label>Título</label>
+                        <input
+                          type="text"
+                          value={secao.titulo || ''}
+                          onChange={(e) => atualizarNovaSecao(secao.id, 'titulo', e.target.value)}
+                          className="secao-titulo-input"
+                          placeholder="Título da nova seção (opcional)"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Resumo</label>
+                        <textarea
+                          value={secao.resumo || ''}
+                          onChange={(e) => atualizarNovaSecao(secao.id, 'resumo', e.target.value)}
+                          placeholder="Digite um resumo da seção"
+                          rows="3"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Conteúdo</label>
+                        <textarea
+                          value={secao.original || ''}
+                          onChange={(e) => atualizarNovaSecao(secao.id, 'original', e.target.value)}
+                          placeholder="Digite o conteúdo da seção"
+                          rows="5"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Link 3D</label>
+                        <input
+                          type="url"
+                          value={secao.link3d || ''}
+                          onChange={(e) => atualizarNovaSecao(secao.id, 'link3d', e.target.value)}
+                          placeholder="https://..."
+                          className="secao-link3d-input"
+                        />
+                      </div>
+                      <div className="secao-actions-editing">
+                        <button 
+                          className="btn-danger"
+                          onClick={() => removerNovaSecao(secao.id)}
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="form-group">
-                    <label>Conteúdo</label>
-                    <textarea
-                      value={secao.original || ''}
-                      onChange={(e) => atualizarNovaSecao(secao.id, 'original', e.target.value)}
-                      placeholder="Digite o conteúdo da seção"
-                      rows="5"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Link 3D</label>
-                    <input
-                      type="url"
-                      value={secao.link3d || ''}
-                      onChange={(e) => atualizarNovaSecao(secao.id, 'link3d', e.target.value)}
-                      placeholder="https://..."
-                      className="secao-link3d-input"
-                    />
-                  </div>
-                  <div className="secao-actions-editing">
+                </div>
+              ))}
+
+              {/* Botão para adicionar nova seção */}
+              <div className="add-secao-container">
+                <button 
+                  className="add-secao-button-styled"
+                  onClick={adicionarNovaSecao}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  adicionar conteúdo
+                </button>
+              </div>
+
+              {/* Botões de ação - apenas descartar quando há alterações */}
+              {(secoesEditadas.length > 0 || novasSecoes.length > 0) && (
+                <div className="save-actions-container">
+                  <div className="save-actions">
                     <button 
-                      className="btn-danger"
-                      onClick={() => removerNovaSecao(secao.id)}
+                      className="btn-secondary"
+                      onClick={descartarAlteracoes}
+                      disabled={saving}
                     >
-                      Remover
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                      </svg>
+                      Descartar alterações
+                    </button>
+                    <button 
+                      className="btn-outline"
+                      onClick={salvarComoRascunho}
+                      disabled={saving}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17,21 17,13 7,13 7,21"></polyline>
+                        <polyline points="7,3 7,8 15,8"></polyline>
+                      </svg>
+                      Salvar como Rascunho
                     </button>
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
-
-          {/* Botão para adicionar nova seção */}
-          {canManageSecoes && (
-            <div className="add-secao-container">
-              <button 
-                className="add-secao-button-styled"
-                onClick={adicionarNovaSecao}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                adicionar conteúdo
-              </button>
-            </div>
-          )}
-
-          {/* Botões de salvar - mostrar quando há alterações */}
-          {canManageSecoes && (secoesEditadas.length > 0 || novasSecoes.length > 0) && (
-            <div className="save-actions-container">
-              <div className="save-actions">
-                <button 
-                  className="btn-outline"
-                  onClick={salvarComoRascunho}
-                  disabled={saving}
-                >
-                  Salvar como Rascunho
-                </button>
-                <button 
-                  className="btn-primary"
-                  onClick={salvarSecoes}
-                  disabled={saving}
-                >
-                  {saving ? 'Salvando...' : 'Finalizar'}
-                </button>
-              </div>
+              )}
+            </>
+          ) : (
+            /* Vista para usuários - conteúdo contínuo sem separação */
+            <div className="capitulo-content-continuo">
+              {secoesFiltradas.map((secao) => (
+                <div key={secao.id} className="secao-content-item">
+                  {/* Mostrar título apenas se existir */}
+                  {secao.titulo && secao.titulo.trim() !== '' && (
+                    <h3 className="secao-titulo-continuo">{secao.titulo}</h3>
+                  )}
+                  
+                  {/* Mostrar resumo se existir */}
+                  {secao.resumo && secao.resumo.trim() !== '' && (
+                    <div className="secao-resumo-continuo">
+                      <p>{secao.resumo}</p>
+                    </div>
+                  )}
+                  
+                  {/* Renderizar conteúdo da seção */}
+                  {renderSecaoContentUser(secao)}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -763,7 +904,7 @@ const Secoes = () => {
           <p>
             {canManageSecoes 
               ? "Nenhuma seção cadastrada. Clique no botão 'Adicionar Seção' para começar!"
-              : "Nenhuma seção cadastrada."
+              : "Este capítulo ainda não possui conteúdo."
             }
           </p>
         </div>
@@ -772,7 +913,7 @@ const Secoes = () => {
       {/* Mensagem quando não há resultados na pesquisa */}
       {!loading && !error && secoes.length > 0 && secoesFiltradas.length === 0 && searchTerm && (
         <div className="no-results">
-          <p>Nenhuma seção encontrada para "{searchTerm}"</p>
+          <p>Nenhum conteúdo encontrado para "{searchTerm}"</p>
         </div>
       )}
 
@@ -788,8 +929,8 @@ const Secoes = () => {
               <polyline points="10,9 9,9 8,9"></polyline>
             </svg>
           </div>
-          <h3>Nenhuma seção encontrada</h3>
-          <p>Este capítulo ainda não possui seções criadas.</p>
+          <h3>{canManageSecoes ? 'Nenhuma seção encontrada' : 'Capítulo vazio'}</h3>
+          <p>{canManageSecoes ? 'Este capítulo ainda não possui seções criadas.' : 'Este capítulo ainda não possui conteúdo disponível.'}</p>
           {canManageSecoes && (
             <button 
               className="btn-primary"
@@ -820,6 +961,38 @@ const Secoes = () => {
         onAdd={handleAddImagemFromModal}
         idSecao={selectedSecaoForImage?.id}
       />
+
+      <ConfirmDiscardModal
+        isOpen={showConfirmDiscardModal}
+        onClose={() => setShowConfirmDiscardModal(false)}
+        onConfirm={confirmarDescarte}
+        title="Descartar alterações?"
+        message="Tem certeza que deseja descartar todas as alterações não salvas? Esta ação não pode ser desfeita."
+        confirmText="Descartar"
+        cancelText="Cancelar"
+      />
+
+      {/* Botão fixo de salvar */}
+      {(secoesEditadas.length > 0 || novasSecoes.length > 0) && (
+        <button 
+          className={`save-button-fixed ${saving ? 'saving' : ''}`}
+          onClick={salvarSecoes}
+          disabled={saving}
+          title={saving ? 'Salvando alterações...' : 'Salvar todas as alterações'}
+        >
+          {saving ? (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 12a9 9 0 11-6.219-8.56"></path>
+            </svg>
+          ) : (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17,21 17,13 7,13 7,21"></polyline>
+              <polyline points="7,3 7,8 15,8"></polyline>
+            </svg>
+          )}
+        </button>
+      )}
     </div>
   );
 };
