@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getSecoes, createSecao, updateSecao, deleteSecao } from '../services/secaoService';
-import { getImagens, createImagem, deleteImagem, fileToBytea } from '../services/imagemService';
+import { getImagens, createImagem, deleteImagem, updateImagem, fileToBytea } from '../services/imagemService';
 import { getCapitulos } from '../services/capituloService';
 import { processImageData } from '../utils/imageUtils';
 import DeleteSecaoModal from '../components/DeleteSecaoModal';
@@ -27,6 +27,17 @@ const Secoes = () => {
   const [secoesEditadas, setSecoesEditadas] = useState([]);
   const [novasSecoes, setNovasSecoes] = useState([]);
   const [saving, setSaving] = useState(false);
+  
+  // Estado para gerenciar imagens temporárias de novas seções
+  const [imagensTemporarias, setImagensTemporarias] = useState({});
+  const [uploadingImages, setUploadingImages] = useState({});
+  
+  // Estado para gerenciar edições de imagens existentes
+  const [imagensEditadas, setImagensEditadas] = useState({});
+  const [reordenandoImagens, setReordenandoImagens] = useState({});
+  
+  // Estado para controlar imagens marcadas para remoção
+  const [imagensMarcadasParaRemocao, setImagensMarcadasParaRemocao] = useState({});
   
   // Estados dos modais (manter apenas para imagens)
   const [showDeleteSecaoModal, setShowDeleteSecaoModal] = useState(false);
@@ -158,29 +169,60 @@ const Secoes = () => {
 
   const handleAddImagem = async (secaoId, file) => {
     try {
-      const byteaContent = await fileToBytea(file);
-      const imagens = secaoImages[secaoId] || [];
-      const novaOrdem = imagens.length > 0 ? Math.max(...imagens.map(img => img.ordem)) + 1 : 1;
+      // Usar um ID único para cada upload para evitar conflitos
+      const uploadId = `existing-${secaoId}-${Date.now()}-${Math.random()}`;
+      setUploadingImages(prev => ({ ...prev, [uploadId]: true }));
       
-      const imagemData = {
-        conteudo: Array.from(byteaContent),
-        content_type: file.type,
-        descricao: file.name,
-        ordem: novaOrdem,
-        id_secao: parseInt(secaoId)
+      // Converter arquivo para base64 para preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imagens = secaoImages[secaoId] || [];
+        const imagensTemporariasSeccao = imagensTemporarias[`existing-${secaoId}`] || [];
+        const totalImagens = imagens.length + imagensTemporariasSeccao.length;
+        const novaOrdem = totalImagens > 0 ? Math.max(
+          ...imagens.map(img => img.ordem),
+          ...imagensTemporariasSeccao.map(img => img.ordem)
+        ) + 1 : 1;
+        
+        const imagemTemporaria = {
+          id: `temp-existing-${Date.now()}-${Math.random()}`,
+          file: file,
+          preview: e.target.result,
+          descricao: '',
+          content_type: file.type,
+          ordem: novaOrdem,
+          id_secao: parseInt(secaoId),
+          isTemporary: true,
+          isNewForExistingSection: true
+        };
+        
+        // Adicionar à lista de imagens temporárias com chave especial para seções existentes
+        setImagensTemporarias(prev => ({
+          ...prev,
+          [`existing-${secaoId}`]: [...(prev[`existing-${secaoId}`] || []), imagemTemporaria]
+        }));
+        
+        // Remover o estado de upload específico
+        setUploadingImages(prev => {
+          const newState = { ...prev };
+          delete newState[uploadId];
+          return newState;
+        });
       };
-      
-      await createImagem(imagemData);
-      // Forçar recarregamento das imagens
-      setSecaoImages(prev => {
-        const newImages = { ...prev };
-        delete newImages[secaoId];
-        return newImages;
-      });
-      await fetchImagensSecao(secaoId);
+      reader.readAsDataURL(file);
     } catch (error) {
-      console.error('Erro ao adicionar imagem:', error);
+      console.error('Erro ao adicionar imagem temporária:', error);
       alert('Erro ao adicionar imagem. Tente novamente.');
+      // Limpar estado de upload em caso de erro
+      setUploadingImages(prev => {
+        const newState = { ...prev };
+        Object.keys(newState).forEach(key => {
+          if (key.startsWith(`existing-${secaoId}-`)) {
+            delete newState[key];
+          }
+        });
+        return newState;
+      });
     }
   };
 
@@ -425,28 +467,403 @@ const Secoes = () => {
         <div className="secao-imagens">
           <div className="imagens-header">
             <h4>Imagens:</h4>
-            <button 
-              className="add-image-button"
-              onClick={() => handleAddImagemModal(secao)}
-              title="Adicionar imagem"
-            >
+            <label className="add-image-button">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => {
+                  const files = Array.from(e.target.files);
+                  files.forEach(file => handleAddImagem(secao.id, file));
+                  e.target.value = '';
+                }}
+                style={{ display: 'none' }}
+              />
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
               Adicionar Imagem
-            </button>
+            </label>
           </div>
           
-          {loadingImages[secao.id] ? (
+          {loadingImages[secao.id] || Object.keys(uploadingImages).some(key => key.startsWith(`existing-${secao.id}-`)) ? (
             <p>Carregando imagens...</p>
           ) : (
             <div className="imagens-grid">
-              {secaoImages[secao.id]?.map(renderImage)}
-              {(!secaoImages[secao.id] || secaoImages[secao.id].length === 0) && (
-                <p className="no-images">Nenhuma imagem cadastrada</p>
-              )}
+              {/* Imagens existentes */}
+              {secaoImages[secao.id]?.map(imagem => renderImageWithControls(imagem, secao.id))}
+              
+              {/* Imagens temporárias para seção existente */}
+              {imagensTemporarias[`existing-${secao.id}`]?.map((imagem, originalIndex) => {
+                const marcadaParaRemocao = imagensMarcadasParaRemocao[`existing-${secao.id}`]?.includes(imagem.id);
+                if (marcadaParaRemocao) return null;
+                
+                // Calcular índice real considerando apenas imagens visíveis
+                const imagensVisiveis = imagensTemporarias[`existing-${secao.id}`].filter(img => 
+                  !imagensMarcadasParaRemocao[`existing-${secao.id}`]?.includes(img.id)
+                );
+                const indexVisivel = imagensVisiveis.findIndex(img => img.id === imagem.id);
+                
+                return (
+                <div key={imagem.id} className="imagem-temporaria">
+                  <div className="image-preview">
+                    <img 
+                      src={imagem.preview} 
+                      alt={imagem.descricao}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                    <button 
+                      className="delete-temp-image-button"
+                      onClick={() => removerImagemTemporaria(`existing-${secao.id}`, imagem.id)}
+                      title="Remover imagem"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="image-info">
+                    <input
+                      type="text"
+                      value={imagem.descricao}
+                      onChange={(e) => {
+                        setImagensTemporarias(prev => ({
+                          ...prev,
+                          [`existing-${secao.id}`]: prev[`existing-${secao.id}`].map(img => 
+                            img.id === imagem.id ? { ...img, descricao: e.target.value } : img
+                          )
+                        }));
+                      }}
+                      placeholder="Descrição da imagem"
+                      className="image-description-input"
+                    />
+                    <div className="image-order">
+                      <span>Ordem: {imagem.ordem}</span>
+                      {indexVisivel > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => reordenarImagensTemporarias(`existing-${secao.id}`, originalIndex, originalIndex - 1)}
+                          className="order-button"
+                          title="Mover para cima"
+                        >
+                          ↑
+                        </button>
+                      )}
+                      {indexVisivel < imagensVisiveis.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={() => reordenarImagensTemporarias(`existing-${secao.id}`, originalIndex, originalIndex + 1)}
+                          className="order-button"
+                          title="Mover para baixo"
+                        >
+                          ↓
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                );
+              })}
+
+              {(() => {
+                const imagensExistentes = secaoImages[secao.id] || [];
+                const imagensTemporariasSeccao = imagensTemporarias[`existing-${secao.id}`] || [];
+                const imagensMarcadas = imagensMarcadasParaRemocao[`existing-${secao.id}`] || [];
+                
+                // Filtrar imagens existentes que não estão marcadas para remoção
+                const imagensExistentesVisiveis = imagensExistentes.filter(img => 
+                  !imagensMarcadas.includes(`saved-${img.id}`)
+                );
+                
+                // Filtrar imagens temporárias que não estão marcadas para remoção  
+                const imagensTemporariasVisiveis = imagensTemporariasSeccao.filter(img => 
+                  !imagensMarcadas.includes(img.id)
+                );
+                
+                return (imagensExistentesVisiveis.length === 0 && imagensTemporariasVisiveis.length === 0) && (
+                  <p className="no-images">Nenhuma imagem cadastrada</p>
+                );
+              })()}
             </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Funções para gerenciar edições de imagens existentes
+  const atualizarDescricaoImagem = (imagemId, novaDescricao) => {
+    setImagensEditadas(prev => ({
+      ...prev,
+      [imagemId]: {
+        ...prev[imagemId],
+        descricao: novaDescricao
+      }
+    }));
+  };
+
+  const reordenarImagensExistentes = async (secaoId, startIndex, endIndex) => {
+    const imagens = [...(secaoImages[secaoId] || [])];
+    const [removed] = imagens.splice(startIndex, 1);
+    imagens.splice(endIndex, 0, removed);
+    
+    // Atualizar ordens
+    const imagensComNovaOrdem = imagens.map((img, index) => ({
+      ...img,
+      ordem: index + 1
+    }));
+    
+    try {
+      setReordenandoImagens(prev => ({ ...prev, [secaoId]: true }));
+      
+      // Atualizar todas as imagens com nova ordem
+      for (const imagem of imagensComNovaOrdem) {
+        await updateImagem(imagem.id, { ordem: imagem.ordem });
+      }
+      
+      // Recarregar imagens da seção
+      await fetchImagensSecao(secaoId, true);
+    } catch (error) {
+      console.error('Erro ao reordenar imagens:', error);
+      alert('Erro ao reordenar imagens. Tente novamente.');
+    } finally {
+      setReordenandoImagens(prev => ({ ...prev, [secaoId]: false }));
+    }
+  };
+
+  const salvarDescricaoImagem = async (imagemId) => {
+    const imagemEditada = imagensEditadas[imagemId];
+    if (!imagemEditada) return;
+    
+    try {
+      await updateImagem(imagemId, { descricao: imagemEditada.descricao });
+      
+      // Atualizar o cache local
+      setSecaoImages(prev => {
+        const newImages = { ...prev };
+        Object.keys(newImages).forEach(secaoId => {
+          newImages[secaoId] = newImages[secaoId].map(img => 
+            img.id === imagemId 
+              ? { ...img, descricao: imagemEditada.descricao }
+              : img
+          );
+        });
+        return newImages;
+      });
+      
+      // Limpar edição
+      setImagensEditadas(prev => {
+        const newEditadas = { ...prev };
+        delete newEditadas[imagemId];
+        return newEditadas;
+      });
+    } catch (error) {
+      console.error('Erro ao salvar descrição da imagem:', error);
+      alert('Erro ao salvar descrição. Tente novamente.');
+    }
+  };
+
+  // Função para renderizar imagem com controles (para seções existentes)
+  const renderImageWithControls = (imagem, secaoId) => {
+    const processedImage = processImageData(imagem);
+    const imagemEditada = imagensEditadas[imagem.id];
+    const descricaoAtual = imagemEditada?.descricao ?? imagem.descricao;
+    const foiEditada = imagemEditada && imagemEditada.descricao !== imagem.descricao;
+    const imagens = secaoImages[secaoId] || [];
+    const currentIndex = imagens.findIndex(img => img.id === imagem.id);
+    
+    // Verificar se a imagem está marcada para remoção
+    const marcadaParaRemocao = imagensMarcadasParaRemocao[`existing-${secaoId}`]?.includes(`saved-${imagem.id}`);
+    if (marcadaParaRemocao) return null;
+    
+    if (!processedImage) {
+      return (
+        <div key={imagem.id} className="secao-imagem error">
+          <div className="image-error">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+            <p>Erro ao carregar imagem</p>
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <div key={imagem.id} className="imagem-existente">
+        <div className="image-preview">
+          <img 
+            src={processedImage.src} 
+            alt={processedImage.descricao} 
+            onError={(e) => {
+              console.error('Erro ao carregar imagem:', e);
+              e.target.style.display = 'none';
+            }}
+          />
+          <button 
+            className="delete-image-button"
+            onClick={() => marcarImagemExistenteParaRemocao(imagem.id, secaoId)}
+            title="Remover imagem"
+          >
+            ×
+          </button>
+        </div>
+        <div className="image-info">
+          <div className="image-description-container">
+            <input
+              type="text"
+              value={descricaoAtual || ''}
+              onChange={(e) => atualizarDescricaoImagem(imagem.id, e.target.value)}
+              placeholder="Descrição da imagem"
+              className="image-description-input"
+            />
+            {foiEditada && (
+              <button
+                className="save-description-button"
+                onClick={() => salvarDescricaoImagem(imagem.id)}
+                title="Salvar descrição"
+              >
+                ✓
+              </button>
+            )}
+          </div>
+          <div className="image-order">
+            <span>Ordem: {imagem.ordem}</span>
+            {currentIndex > 0 && (
+              <button
+                type="button"
+                onClick={() => reordenarImagensExistentes(secaoId, currentIndex, currentIndex - 1)}
+                className="order-button"
+                title="Mover para cima"
+                disabled={reordenandoImagens[secaoId]}
+              >
+                ↑
+              </button>
+            )}
+            {currentIndex < imagens.length - 1 && (
+              <button
+                type="button"
+                onClick={() => reordenarImagensExistentes(secaoId, currentIndex, currentIndex + 1)}
+                className="order-button"
+                title="Mover para baixo"
+                disabled={reordenandoImagens[secaoId]}
+              >
+                ↓
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+  const renderImagensTemporarias = (secaoId) => {
+    const imagens = imagensTemporarias[secaoId] || [];
+    const isUploading = uploadingImages[secaoId];
+    
+    return (
+      <div className="secao-imagens-temporarias">
+        <div className="imagens-header">
+          <h4>Imagens:</h4>
+          <label className="add-image-button">
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => {
+                const files = Array.from(e.target.files);
+                files.forEach(file => adicionarImagemTemporaria(secaoId, file));
+                e.target.value = '';
+              }}
+              style={{ display: 'none' }}
+            />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Adicionar Imagem
+          </label>
+        </div>
+        
+        {isUploading && (
+          <p className="uploading-message">Processando imagem...</p>
+        )}
+        
+        <div className="imagens-grid-temp">
+          {imagens.map((imagem, originalIndex) => {
+            const marcadaParaRemocao = imagensMarcadasParaRemocao[secaoId]?.includes(imagem.id);
+            if (marcadaParaRemocao) return null;
+            
+            // Calcular índice real considerando apenas imagens visíveis
+            const imagensVisiveis = imagens.filter(img => 
+              !imagensMarcadasParaRemocao[secaoId]?.includes(img.id)
+            );
+            const indexVisivel = imagensVisiveis.findIndex(img => img.id === imagem.id);
+            
+            return (
+            <div key={imagem.id} className="imagem-temporaria">
+              <div className="image-preview">
+                <img 
+                  src={imagem.preview} 
+                  alt={imagem.descricao}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+                <button 
+                  className="delete-temp-image-button"
+                  onClick={() => removerImagemTemporaria(secaoId, imagem.id)}
+                  title="Remover imagem"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="image-info">
+                <input
+                  type="text"
+                  value={imagem.descricao}
+                  onChange={(e) => {
+                    setImagensTemporarias(prev => ({
+                      ...prev,
+                      [secaoId]: prev[secaoId].map(img => 
+                        img.id === imagem.id ? { ...img, descricao: e.target.value } : img
+                      )
+                    }));
+                  }}
+                  placeholder="Descrição da imagem"
+                  className="image-description-input"
+                />
+                <div className="image-order">
+                  <span>Ordem: {imagem.ordem}</span>
+                  {indexVisivel > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => reordenarImagensTemporarias(secaoId, originalIndex, originalIndex - 1)}
+                      className="order-button"
+                      title="Mover para cima"
+                    >
+                      ↑
+                    </button>
+                  )}
+                  {indexVisivel < imagensVisiveis.length - 1 && (
+                    <button
+                      type="button"
+                      onClick={() => reordenarImagensTemporarias(secaoId, originalIndex, originalIndex + 1)}
+                      className="order-button"
+                      title="Mover para baixo"
+                    >
+                      ↓
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            );
+          })}
+          {imagens.filter(img => !imagensMarcadasParaRemocao[secaoId]?.includes(img.id)).length === 0 && (
+            <p className="no-images-temp">Nenhuma imagem adicionada</p>
           )}
         </div>
       </div>
@@ -516,6 +933,14 @@ const Secoes = () => {
     }
   };
 
+  // Nova função para marcar imagens existentes para remoção (não apagar imediatamente)
+  const marcarImagemExistenteParaRemocao = (imagemId, secaoId) => {
+    setImagensMarcadasParaRemocao(prev => ({
+      ...prev,
+      [`existing-${secaoId}`]: [...(prev[`existing-${secaoId}`] || []), `saved-${imagemId}`]
+    }));
+  };
+
   // Funções dos modais
   const handleAddSecao = async (secaoData) => {
     try {
@@ -574,6 +999,77 @@ const Secoes = () => {
   // Função específica para remover novas seções
   const removerNovaSecao = (secaoId) => {
     setNovasSecoes(prev => prev.filter(secao => secao.id !== secaoId));
+    // Remover também as imagens temporárias desta seção
+    setImagensTemporarias(prev => {
+      const newImages = { ...prev };
+      delete newImages[secaoId];
+      return newImages;
+    });
+    // Remover também as marcações de remoção desta seção
+    setImagensMarcadasParaRemocao(prev => {
+      const newMarcacoes = { ...prev };
+      delete newMarcacoes[secaoId];
+      return newMarcacoes;
+    });
+  };
+
+  // Funções para gerenciar imagens temporárias de novas seções
+  const adicionarImagemTemporaria = async (secaoId, file) => {
+    try {
+      setUploadingImages(prev => ({ ...prev, [secaoId]: true }));
+      
+      // Converter arquivo para base64 para preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imagemTemporaria = {
+          id: `temp-${Date.now()}-${Math.random()}`,
+          file: file,
+          preview: e.target.result,
+          descricao: '',
+          content_type: file.type,
+          ordem: (imagensTemporarias[secaoId] || []).length + 1,
+          isTemporary: true
+        };
+        
+        setImagensTemporarias(prev => ({
+          ...prev,
+          [secaoId]: [...(prev[secaoId] || []), imagemTemporaria]
+        }));
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Erro ao adicionar imagem temporária:', error);
+      alert('Erro ao adicionar imagem. Tente novamente.');
+    } finally {
+      setUploadingImages(prev => ({ ...prev, [secaoId]: false }));
+    }
+  };
+
+  const removerImagemTemporaria = (secaoId, imagemId) => {
+    // Marcar imagem para remoção ao invés de removê-la imediatamente
+    setImagensMarcadasParaRemocao(prev => ({
+      ...prev,
+      [secaoId]: [...(prev[secaoId] || []), imagemId]
+    }));
+  };
+
+  const reordenarImagensTemporarias = (secaoId, startIndex, endIndex) => {
+    setImagensTemporarias(prev => {
+      const imagensSecao = [...(prev[secaoId] || [])];
+      const [removed] = imagensSecao.splice(startIndex, 1);
+      imagensSecao.splice(endIndex, 0, removed);
+      
+      // Atualizar ordens
+      const imagensComNovaOrdem = imagensSecao.map((img, index) => ({
+        ...img,
+        ordem: index + 1
+      }));
+      
+      return {
+        ...prev,
+        [secaoId]: imagensComNovaOrdem
+      };
+    });
   };
 
   const removerSecao = (secaoId) => {
@@ -596,18 +1092,123 @@ const Secoes = () => {
         }
       }
       
-      // Criar novas seções
+      // Salvar alterações nas descrições das imagens
+      for (const [imagemId, dadosEditados] of Object.entries(imagensEditadas)) {
+        try {
+          await updateImagem(imagemId, { descricao: dadosEditados.descricao });
+        } catch (imgError) {
+          console.error('Erro ao salvar descrição da imagem:', imgError);
+          // Continua salvando outras alterações mesmo se uma falhar
+        }
+      }
+      
+      // Salvar novas imagens para seções existentes
+      const secoesComImagensNovas = [];
+      for (const [chave, imagensTemp] of Object.entries(imagensTemporarias)) {
+        if (chave.startsWith('existing-')) {
+          const secaoId = chave.replace('existing-', '');
+          const imagensParaRemover = imagensMarcadasParaRemocao[chave] || [];
+          
+          for (const imagemTemp of imagensTemp) {
+            // Pular imagens marcadas para remoção
+            if (imagensParaRemover.includes(imagemTemp.id)) continue;
+            
+            try {
+              const byteaContent = await fileToBytea(imagemTemp.file);
+              const imagemData = {
+                conteudo: Array.from(byteaContent),
+                content_type: imagemTemp.content_type,
+                descricao: imagemTemp.descricao,
+                ordem: imagemTemp.ordem,
+                id_secao: parseInt(secaoId)
+              };
+              await createImagem(imagemData);
+              
+              // Marcar seção para recarregar imagens
+              if (!secoesComImagensNovas.includes(secaoId)) {
+                secoesComImagensNovas.push(secaoId);
+              }
+            } catch (imgError) {
+              console.error('Erro ao salvar imagem para seção existente:', imgError);
+              // Continua salvando outras imagens mesmo se uma falhar
+            }
+          }
+        }
+      }
+      
+      // Processar remoções de imagens marcadas para seções existentes
+      for (const [chave, imagensMarcadas] of Object.entries(imagensMarcadasParaRemocao)) {
+        if (chave.startsWith('existing-')) {
+          const secaoId = chave.replace('existing-', '');
+          
+          for (const imagemMarcada of imagensMarcadas) {
+            if (imagemMarcada.startsWith('saved-')) {
+              const imagemId = imagemMarcada.replace('saved-', '');
+              try {
+                await deleteImagem(parseInt(imagemId));
+                
+                // Marcar seção para recarregar imagens
+                if (!secoesComImagensNovas.includes(secaoId)) {
+                  secoesComImagensNovas.push(secaoId);
+                }
+              } catch (imgError) {
+                console.error('Erro ao remover imagem:', imgError);
+                // Continua removendo outras imagens mesmo se uma falhar
+              }
+            }
+          }
+        }
+      }
+      
+      // Criar novas seções com suas imagens
       for (const novaSecao of novasSecoes) {
         const { id, isNew, ...secaoData } = novaSecao;
-        await createSecao(secaoData);
+        
+        // Criar a seção primeiro
+        const secaoCriada = await createSecao(secaoData);
+        const secaoId = secaoCriada.id;
+        
+        // Se há imagens temporárias para esta seção, criá-las
+        const imagensSecao = imagensTemporarias[id] || [];
+        const imagensParaRemover = imagensMarcadasParaRemocao[id] || [];
+        
+        for (const imagemTemp of imagensSecao) {
+          // Pular imagens marcadas para remoção
+          if (imagensParaRemover.includes(imagemTemp.id)) continue;
+          
+          try {
+            const byteaContent = await fileToBytea(imagemTemp.file);
+            const imagemData = {
+              conteudo: Array.from(byteaContent),
+              content_type: imagemTemp.content_type,
+              descricao: imagemTemp.descricao,
+              ordem: imagemTemp.ordem,
+              id_secao: secaoId
+            };
+            await createImagem(imagemData);
+          } catch (imgError) {
+            console.error('Erro ao salvar imagem:', imgError);
+            // Continua salvando outras imagens mesmo se uma falhar
+          }
+        }
       }
       
       // Recarregar seções
       await fetchSecoes();
+      
+      // Recarregar imagens das seções que tiveram mudanças
+      for (const secaoId of secoesComImagensNovas) {
+        await fetchImagensSecao(secaoId, true);
+      }
+      
       setSecoesEditadas([]);
       setNovasSecoes([]);
+      setImagensTemporarias({});
+      setImagensEditadas({});
+      setImagensMarcadasParaRemocao({});
       
-      alert('Seções salvas com sucesso!');
+      // Mostrar notificação de sucesso mais elegante
+      console.log('✅ Seções salvas com sucesso!');
     } catch (error) {
       console.error('Erro ao salvar seções:', error);
       alert('Erro ao salvar seções: ' + error.message);
@@ -617,17 +1218,43 @@ const Secoes = () => {
   };
 
   const descartarAlteracoes = () => {
-    setShowConfirmDiscardModal(true);
+    // Verificar se há imagens temporárias que serão perdidas
+    const totalImagensTemporarias = Object.values(imagensTemporarias).reduce((total, imagens) => total + imagens.length, 0);
+    const totalImagensEditadas = Object.keys(imagensEditadas).length;
+    const totalImagensMarcadasParaRemocao = Object.values(imagensMarcadasParaRemocao).reduce((total, imagens) => total + imagens.length, 0);
+    
+    if (totalImagensTemporarias > 0 || totalImagensEditadas > 0 || totalImagensMarcadasParaRemocao > 0) {
+      let confirmMessage = 'Atenção: ';
+      if (totalImagensTemporarias > 0) {
+        confirmMessage += `Você tem ${totalImagensTemporarias} imagem(ns) temporária(s) que será(ão) perdida(s). `;
+      }
+      if (totalImagensMarcadasParaRemocao > 0) {
+        confirmMessage += `${totalImagensMarcadasParaRemocao} imagem(ns) marcada(s) para remoção será(ão) restaurada(s). `;
+      }
+      if (totalImagensEditadas > 0) {
+        confirmMessage += `${totalImagensEditadas} descrição(ões) de imagem foram alteradas e serão perdidas. `;
+      }
+      confirmMessage += 'Tem certeza que deseja descartar todas as alterações?';
+      
+      if (window.confirm(confirmMessage)) {
+        setShowConfirmDiscardModal(true);
+      }
+    } else {
+      setShowConfirmDiscardModal(true);
+    }
   };
 
   const confirmarDescarte = () => {
     setSecoesEditadas([]);
     setNovasSecoes([]);
+    setImagensTemporarias({});
+    setImagensEditadas({});
+    setImagensMarcadasParaRemocao({});
   };
 
   const salvarComoRascunho = async () => {
     // TODO: Implementar lógica para criar capítulo de rascunho
-    alert('Funcionalidade de rascunho será implementada em breve');
+    console.log('ℹ️ Funcionalidade de rascunho será implementada em breve');
   };
 
   const handleDeleteSecaoModal = (secao) => {
@@ -813,6 +1440,20 @@ const Secoes = () => {
                           className="secao-link3d-input"
                         />
                       </div>
+                      
+                      {/* Seção de imagens temporárias */}
+                      <div className="form-group">
+                        <div className="secao-images-header">
+                          <label>
+                            Imagens 
+                            {imagensTemporarias[secao.id] && imagensTemporarias[secao.id].length > 0 && (
+                              <span className="images-count">({imagensTemporarias[secao.id].length})</span>
+                            )}
+                          </label>
+                        </div>
+                        {renderImagensTemporarias(secao.id)}
+                      </div>
+                      
                       <div className="secao-actions-editing">
                         <button 
                           className="btn-danger"
@@ -841,7 +1482,7 @@ const Secoes = () => {
               </div>
 
               {/* Botões de ação - apenas descartar quando há alterações */}
-              {(secoesEditadas.length > 0 || novasSecoes.length > 0) && (
+              {(secoesEditadas.length > 0 || novasSecoes.length > 0 || Object.keys(imagensTemporarias).length > 0 || Object.keys(imagensEditadas).length > 0 || Object.keys(imagensMarcadasParaRemocao).length > 0) && (
                 <div className="save-actions-container">
                   <div className="save-actions">
                     <button 
@@ -973,7 +1614,7 @@ const Secoes = () => {
       />
 
       {/* Botão fixo de salvar */}
-      {(secoesEditadas.length > 0 || novasSecoes.length > 0) && (
+      {(secoesEditadas.length > 0 || novasSecoes.length > 0 || Object.keys(imagensTemporarias).length > 0 || Object.keys(imagensEditadas).length > 0 || Object.keys(imagensMarcadasParaRemocao).length > 0) && (
         <button 
           className={`save-button-fixed ${saving ? 'saving' : ''}`}
           onClick={salvarSecoes}

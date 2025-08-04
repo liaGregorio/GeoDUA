@@ -2621,27 +2621,30 @@ body.dark-mode .auth-copyright {
 }
 
 .add-image-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #519271;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 16px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(81, 146, 113, 0.2);
-  position: relative;
-  overflow: hidden;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: #519271 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 10px 16px !important;
+  cursor: pointer !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 2px 4px rgba(81, 146, 113, 0.2) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-family: inherit !important;
 }
 
 .add-image-button:hover {
-  background: #3d6d54;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(81, 146, 113, 0.3);
+  background: #3d6d54 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(81, 146, 113, 0.3) !important;
 }
 
 .add-image-button:active {
@@ -2715,6 +2718,199 @@ body.dark-mode .auth-copyright {
   border-radius: 12px;
   border: 2px dashed #d1d5db;
   margin-top: 8px;
+}
+
+/* Estilos para imagens existentes com controles */
+.imagem-existente {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+}
+
+.imagem-existente:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.image-description-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.save-description-button {
+  background: #519271;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.save-description-button:hover {
+  background: #3d6d54;
+  transform: scale(1.1);
+}
+
+/* Estilos para imagens temporárias */
+.secao-imagens-temporarias {
+  margin-top: 24px;
+  padding: 20px;
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+}
+
+.secao-images-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.images-count {
+  font-size: 12px;
+  background: #519271;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.uploading-message {
+  color: #6b7280;
+  font-style: italic;
+  text-align: center;
+  padding: 12px;
+  background: #fff;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+
+.imagens-grid-temp {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.imagem-temporaria {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+}
+
+.imagem-temporaria:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.image-preview {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  overflow: hidden;
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.delete-temp-image-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.delete-temp-image-button:hover {
+  background: rgba(220, 38, 38, 0.95);
+  transform: scale(1.1);
+}
+
+.image-info {
+  padding: 12px;
+}
+
+.image-description-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-bottom: 8px;
+  background: #fff;
+}
+
+.image-description-input:focus {
+  outline: none;
+  border-color: #519271;
+  box-shadow: 0 0 0 2px rgba(81, 146, 113, 0.1);
+}
+
+.image-order {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.order-button {
+  background: #e5e7eb;
+  border: none;
+  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.order-button:hover {
+  background: #d1d5db;
+  transform: scale(1.1);
+}
+
+.no-images-temp {
+  color: #6b7280;
+  font-style: italic;
+  text-align: center;
+  padding: 24px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px dashed #d1d5db;
+  margin-top: 12px;
 }
 
 /* Dark mode para seções */
@@ -2971,17 +3167,96 @@ body.dark-mode .auth-copyright {
 }
 
 .dark-mode .add-image-button {
-  background: #2d5742;
-  border-color: #2d5742;
+  background: #2d5742 !important;
+  border-color: #2d5742 !important;
+  color: white !important;
 }
 
 .dark-mode .add-image-button:hover {
-  background: #234434;
-  border-color: #234434;
-  box-shadow: 0 4px 8px rgba(81, 146, 113, 0.3);
+  background: #234434 !important;
+  border-color: #234434 !important;
+  box-shadow: 0 4px 8px rgba(81, 146, 113, 0.3) !important;
 }
 
 .dark-mode .no-images {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #9ca3af;
+}
+
+/* Dark mode para imagens temporárias */
+.dark-mode .secao-imagens-temporarias {
+  background: #1a1a1a;
+  border-color: #2d5742;
+}
+
+.dark-mode .images-count {
+  background: #2d5742;
+  color: white;
+}
+
+.dark-mode .uploading-message {
+  background: #2d2d2d;
+  color: #ccc;
+}
+
+/* Dark mode para imagens existentes com controles */
+.dark-mode .imagem-existente {
+  background: #2d2d2d;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.dark-mode .imagem-existente:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.dark-mode .save-description-button {
+  background: #2d5742;
+  color: white;
+}
+
+.dark-mode .save-description-button:hover {
+  background: #234434;
+}
+
+.dark-mode .imagem-temporaria {
+  background: #2d2d2d;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.dark-mode .imagem-temporaria:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.dark-mode .image-description-input {
+  background: #404040;
+  border-color: #555;
+  color: white;
+}
+
+.dark-mode .image-description-input:focus {
+  border-color: #2d5742;
+  box-shadow: 0 0 0 2px rgba(45, 87, 66, 0.2);
+}
+
+.dark-mode .image-description-input::placeholder {
+  color: #9ca3af;
+}
+
+.dark-mode .image-order {
+  color: #9ca3af;
+}
+
+.dark-mode .order-button {
+  background: #404040;
+  color: #ccc;
+}
+
+.dark-mode .order-button:hover {
+  background: #4a4a4a;
+}
+
+.dark-mode .no-images-temp {
   background: #2d2d2d;
   border-color: #404040;
   color: #9ca3af;
@@ -3948,4 +4223,42 @@ body:not(.dark-mode) .secao-card-nova {
 
 .dark-mode .save-button-fixed:hover {
   background: #234434;
+}
+
+/* Responsividade para botões de salvar */
+@media (max-width: 768px) {
+  .save-actions-container {
+    margin: 16px 0;
+    padding: 16px;
+  }
+  
+  .save-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .save-actions .btn-outline,
+  .save-actions .btn-primary,
+  .save-actions .btn-secondary {
+    width: 100%;
+    min-width: unset;
+    padding: 16px 20px;
+    font-size: 16px;
+    height: 52px;
+  }
+}
+
+@media (max-width: 480px) {
+  .save-actions-container {
+    margin: 12px 0;
+    padding: 12px;
+  }
+  
+  .save-actions .btn-outline,
+  .save-actions .btn-primary,
+  .save-actions .btn-secondary {
+    padding: 14px 16px;
+    font-size: 15px;
+    height: 48px;
+  }
 }

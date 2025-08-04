@@ -34,10 +34,11 @@ export const getSecao = async (id) => {
 export const createSecao = async (secaoData) => {
   try {
     const response = await api.post('/secoes', secaoData);
-    return response.data;
+    // Retornar os dados da seção criada
+    return response.data?.data || response.data;
   } catch (error) {
     console.error('Erro ao criar seção:', error);
-    throw new Error(error.response?.data?.error || 'Erro ao criar seção');
+    throw new Error(error.response?.data?.message || error.response?.data?.error || 'Erro ao criar seção');
   }
 };
 
