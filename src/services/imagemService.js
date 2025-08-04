@@ -34,32 +34,16 @@ export const getImagem = async (id) => {
 // Criar nova imagem
 export const createImagem = async (dadosImagem) => {
   try {
-    console.log('📤 Criando imagem com dados:', {
-      descricao: dadosImagem.descricao,
-      content_type: dadosImagem.content_type,
-      ordem: dadosImagem.ordem,
-      id_secao: dadosImagem.id_secao,
-      conteudo_type: typeof dadosImagem.conteudo,
-      conteudo_length: dadosImagem.conteudo?.length || 0,
-      conteudo_sample: Array.isArray(dadosImagem.conteudo)
-        ? `Array[${dadosImagem.conteudo.length}] primeiros elementos: [${dadosImagem.conteudo.slice(0, 5).join(', ')}...]`
-        : typeof dadosImagem.conteudo === 'string'
-        ? dadosImagem.conteudo.substring(0, 50) + '...'
-        : dadosImagem.conteudo
-    });
     
     // Se há um arquivo, converter para bytea
     if (dadosImagem.arquivo) {
-      console.log('📁 Processando arquivo:', dadosImagem.arquivo);
       const byteaArray = await fileToBytea(dadosImagem.arquivo);
       dadosImagem.conteudo = Array.from(byteaArray);
       dadosImagem.content_type = dadosImagem.arquivo.type;
       delete dadosImagem.arquivo; // Remover o arquivo depois de processar
-      console.log('✅ Arquivo processado para array de bytes:', dadosImagem.conteudo.length);
     }
     
     const response = await api.post('/imagens', dadosImagem);
-    console.log('✅ Imagem criada com sucesso:', response.data);
     return response.data.data;
   } catch (error) {
     console.error('❌ Erro ao criar imagem:', error);

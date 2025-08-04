@@ -8,6 +8,7 @@ import { processImageData } from '../utils/imageUtils';
 import DeleteSecaoModal from '../components/DeleteSecaoModal';
 import AddImagemModal from '../components/AddImagemModal';
 import ConfirmDiscardModal from '../components/ConfirmDiscardModal';
+import '../styles/secaoReorder.css';
 
 const Secoes = () => {
   const { livroId, capituloId } = useParams();
@@ -16,6 +17,7 @@ const Secoes = () => {
   const { editMode, searchTerm } = useOutletContext();
   
   const [secoes, setSecoes] = useState([]);
+  const [secoesOriginais, setSecoesOriginais] = useState([]); // Estado para preservar ordem original
   const [capitulo, setCapitulo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -38,6 +40,9 @@ const Secoes = () => {
   
   // Estado para controlar imagens marcadas para remoção
   const [imagensMarcadasParaRemocao, setImagensMarcadasParaRemocao] = useState({});
+  
+  // Estados para reordenação de seções
+  const [reordenandoSecoes, setReordenandoSecoes] = useState(false);
   
   // Estados dos modais (manter apenas para imagens)
   const [showDeleteSecaoModal, setShowDeleteSecaoModal] = useState(false);
@@ -72,6 +77,9 @@ const Secoes = () => {
       const secoesOrdenadas = secoesArray.sort((a, b) => a.ordem - b.ordem);
       setSecoes(secoesOrdenadas);
       
+      // Salvar cópia das seções originais para comparação no salvamento
+      setSecoesOriginais([...secoesOrdenadas]);
+      
       // Carregar imagens automaticamente para todas as seções
       if (secoesOrdenadas.length > 0) {
         secoesOrdenadas.forEach(secao => {
@@ -82,6 +90,7 @@ const Secoes = () => {
       console.error('Erro ao buscar seções:', err);
       setError(err.message || 'Erro ao carregar seções');
       setSecoes([]);
+      setSecoesOriginais([]);
     } finally {
       setLoading(false);
     }
@@ -123,6 +132,12 @@ const Secoes = () => {
     
     return secao.titulo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
            secao.resumo?.toLowerCase().includes(searchTerm.toLowerCase());
+  }).sort((a, b) => {
+    // Ordenar por ordem, depois por ID se ordem for igual
+    if (a.ordem !== b.ordem) {
+      return a.ordem - b.ordem;
+    }
+    return a.id - b.id;
   });
 
   const handleExpandSecao = (secaoId) => {
@@ -261,33 +276,42 @@ const Secoes = () => {
     // Organizar todos os elementos da seção por ordem
     const items = [];
 
-    // Adicionar conteúdo original se existir
+    // Sempre adicionar título e conteúdo original primeiro (se existirem)
+    if (secao.titulo && secao.titulo.trim() !== '') {
+      items.push({
+        type: 'titulo',
+        content: secao.titulo,
+        ordem: 0 // Título sempre primeiro
+      });
+    }
+
     if (secao.original && secao.original.trim() !== '') {
       items.push({
         type: 'original',
         content: secao.original,
-        ordem: secao.ordem || 1
+        ordem: 1 // Conteúdo sempre após título
       });
     }
 
-    // Adicionar link 3D se existir
-    if (secao.link3d && secao.link3d.trim() !== '') {
-      items.push({
-        type: 'link3d',
-        content: secao.link3d,
-        ordem: secao.ordem3d || 2
-      });
-    }
-
-    // Adicionar imagens se existirem
+    // Adicionar imagens se existirem (ordem 2+)
     const imagens = secaoImages[secao.id] || [];
     if (imagens.length > 0) {
       imagens.forEach(imagem => {
         items.push({
           type: 'imagem',
           content: imagem,
-          ordem: imagem.ordem || 3
+          ordem: imagem.ordem + 1 // Offset para vir após título e conteúdo
         });
+      });
+    }
+
+    // Adicionar link 3D se existir (ordem configurável, mas sempre após conteúdo)
+    if (secao.link3d && secao.link3d.trim() !== '') {
+      const ordem3d = secao.ordem3d || (imagens.length + 2); // Padrão: após todas as imagens
+      items.push({
+        type: 'link3d',
+        content: secao.link3d,
+        ordem: ordem3d
       });
     }
 
@@ -298,6 +322,9 @@ const Secoes = () => {
       <div className="secao-content-user">
         {items.map((item, index) => (
           <div key={`${item.type}-${index}`} className="secao-content-element">
+            {item.type === 'titulo' && (
+              <h3 className="secao-titulo-inline">{item.content}</h3>
+            )}
             {item.type === 'original' && (
               <div className="secao-texto">
                 {item.content.split('\n').map((paragraph, pIndex) => (
@@ -455,13 +482,27 @@ const Secoes = () => {
         {/* Campo Link 3D */}
         <div className="secao-link3d">
           <h4>Link 3D:</h4>
-          <input
-            type="url"
-            value={getSecaoValue(secao.id, 'link3d') || ''}
-            onChange={(e) => handleUpdateSecao(secao.id, 'link3d', e.target.value)}
-            className="secao-link3d-input"
-            placeholder="https://..."
-          />
+          <div className="link3d-container">
+            <input
+              type="url"
+              value={getSecaoValue(secao.id, 'link3d') || ''}
+              onChange={(e) => handleUpdateSecao(secao.id, 'link3d', e.target.value)}
+              className="secao-link3d-input"
+              placeholder="https://..."
+            />
+            <div className="link3d-order">
+              <label>Ordem do Link 3D:</label>
+              <input
+                type="number"
+                value={getSecaoValue(secao.id, 'ordem3d') || ''}
+                onChange={(e) => handleUpdateSecao(secao.id, 'ordem3d', parseInt(e.target.value) || null)}
+                className="order-input"
+                placeholder="Ex: 3"
+                min="2"
+              />
+              <small>Ordem de exibição (2 = após conteúdo, 3+ = entre/após imagens)</small>
+            </div>
+          </div>
         </div>
 
         <div className="secao-imagens">
@@ -941,6 +982,79 @@ const Secoes = () => {
     }));
   };
 
+  // Funções para reordenação de seções
+  const reordenarSecoes = async (startIndex, endIndex) => {
+    if (startIndex === endIndex) return;
+    
+    try {
+      setReordenandoSecoes(true);
+      
+      // Criar nova lista de seções reordenada
+      const secoesReordenadas = [...secoesFiltradas];
+      const [removedSecao] = secoesReordenadas.splice(startIndex, 1);
+      secoesReordenadas.splice(endIndex, 0, removedSecao);
+      
+      // Atualizar ordens temporariamente para visualização
+      const secoesComNovaOrdem = secoesReordenadas.map((secao, index) => ({
+        ...secao,
+        ordem: index + 1
+      }));
+      
+      // Atualizar estado local para feedback visual imediato
+      setSecoes(prev => {
+        const todasSecoes = [...prev];
+        
+        secoesComNovaOrdem.forEach(secaoReordenada => {
+          const index = todasSecoes.findIndex(s => s.id === secaoReordenada.id);
+          if (index !== -1) {
+            todasSecoes[index] = secaoReordenada;
+          }
+        });
+        
+        return todasSecoes;
+      });
+      
+      // Adicionar seções modificadas à lista de editadas para salvar depois
+      const novasSecoesEditadas = [...secoesEditadas];
+      
+      secoesComNovaOrdem.forEach(secaoReordenada => {
+        const indexEditada = novasSecoesEditadas.findIndex(s => s.id === secaoReordenada.id);
+        
+        if (indexEditada === -1) {
+          // Seção não está na lista de editadas, adicionar
+          novasSecoesEditadas.push(secaoReordenada);
+        } else {
+          // Seção já está na lista de editadas, atualizar
+          novasSecoesEditadas[indexEditada] = { ...novasSecoesEditadas[indexEditada], ...secaoReordenada };
+        }
+      });
+      
+      setSecoesEditadas(novasSecoesEditadas);
+      
+    } catch (error) {
+      console.error('❌ Erro ao reordenar seções:', error);
+      // Recarregar seções em caso de erro
+      await fetchSecoes();
+    } finally {
+      setReordenandoSecoes(false);
+    }
+  };
+
+  const moverSecao = (secaoIndex, direcao) => {
+    const totalSecoes = secoesFiltradas.length;
+    let newIndex;
+    
+    if (direcao === 'up') {
+      // Se está na primeira posição, vai para a última (ordenação circular)
+      newIndex = secaoIndex === 0 ? totalSecoes - 1 : secaoIndex - 1;
+    } else {
+      // Se está na última posição, vai para a primeira (ordenação circular)
+      newIndex = secaoIndex === totalSecoes - 1 ? 0 : secaoIndex + 1;
+    }
+    
+    reordenarSecoes(secaoIndex, newIndex);
+  };
+
   // Funções dos modais
   const handleAddSecao = async (secaoData) => {
     try {
@@ -1086,9 +1200,31 @@ const Secoes = () => {
       
       // Salvar alterações nas seções existentes
       for (const secaoEditada of secoesEditadas) {
-        const secaoOriginal = secoes.find(s => s.id === secaoEditada.id);
-        if (secaoOriginal && JSON.stringify(secaoOriginal) !== JSON.stringify(secaoEditada)) {
-          await updateSecao(secaoEditada.id, secaoEditada);
+        const secaoOriginal = secoesOriginais.find(s => s.id === secaoEditada.id);
+        
+        if (secaoOriginal) {
+          // Verificar se há mudanças específicas nos campos importantes
+          const tituloMudou = secaoOriginal.titulo !== secaoEditada.titulo;
+          const resumoMudou = secaoOriginal.resumo !== secaoEditada.resumo;
+          const originalMudou = secaoOriginal.original !== secaoEditada.original;
+          const link3dMudou = secaoOriginal.link3d !== secaoEditada.link3d;
+          const ordem3dMudou = secaoOriginal.ordem3d !== secaoEditada.ordem3d;
+          
+          // Comparação mais rigorosa da ordem
+          const ordemOriginal = Number(secaoOriginal.ordem);
+          const ordemEditada = Number(secaoEditada.ordem);
+          const ordemMudou = ordemOriginal !== ordemEditada;
+          
+          const temMudancas = tituloMudou || resumoMudou || originalMudou || link3dMudou || ordem3dMudou || ordemMudou;
+          
+          if (temMudancas) {
+            try {
+              await updateSecao(secaoEditada.id, secaoEditada);
+            } catch (updateError) {
+              console.error(`Erro ao salvar seção ${secaoEditada.id}:`, updateError);
+              throw updateError;
+            }
+          }
         }
       }
       
@@ -1206,9 +1342,6 @@ const Secoes = () => {
       setImagensTemporarias({});
       setImagensEditadas({});
       setImagensMarcadasParaRemocao({});
-      
-      // Mostrar notificação de sucesso mais elegante
-      console.log('✅ Seções salvas com sucesso!');
     } catch (error) {
       console.error('Erro ao salvar seções:', error);
       alert('Erro ao salvar seções: ' + error.message);
@@ -1337,32 +1470,60 @@ const Secoes = () => {
           {canManageSecoes ? (
             <>
               {/* Seções existentes para admin */}
-              {secoesFiltradas.map((secao) => (
+              {secoesFiltradas.map((secao, index) => (
                 <div 
                   key={secao.id} 
-                  className={`secao-card ${expandedSecao === secao.id ? 'expanded' : ''} ${secoesEditadas.find(s => s.id === secao.id) ? 'secao-editada' : ''}`}
+                  className={`secao-card ${expandedSecao === secao.id ? 'expanded' : ''} ${secoesEditadas.find(s => s.id === secao.id) ? 'secao-editada' : ''} ${reordenandoSecoes ? 'reordering' : ''}`}
                 >
                   <div className="secao-header">
                     <div className="secao-info">
-                      <div className="form-group">
-                        <label>Título</label>
-                        <input
-                          type="text"
-                          value={getSecaoValue(secao.id, 'titulo') || ''}
-                          onChange={(e) => handleUpdateSecao(secao.id, 'titulo', e.target.value)}
-                          className="secao-titulo-input"
-                          onClick={(e) => e.stopPropagation()}
-                          placeholder="Título da seção"
-                        />
-                        {secoesEditadas.find(s => s.id === secao.id) && (
-                          <span className="edit-indicator" title="Alterações não salvas">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <circle cx="12" cy="12" r="10"></circle>
-                            </svg>
-                          </span>
-                        )}
+                      <div className="secao-title-row">
+                        <div className="secao-reorder-controls">
+                          <div className="order-buttons">
+                            <button
+                              type="button"
+                              onClick={() => moverSecao(index, 'up')}
+                              className="order-button order-up"
+                              title="Mover para cima"
+                              disabled={reordenandoSecoes}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="18,15 12,9 6,15"></polyline>
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moverSecao(index, 'down')}
+                              className="order-button order-down"
+                              title="Mover para baixo"
+                              disabled={reordenandoSecoes}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="6,9 12,15 18,9"></polyline>
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                        <div className="form-group titulo-group">
+                          <label>Título</label>
+                          <input
+                            type="text"
+                            value={getSecaoValue(secao.id, 'titulo') || ''}
+                            onChange={(e) => handleUpdateSecao(secao.id, 'titulo', e.target.value)}
+                            className="secao-titulo-input"
+                            onClick={(e) => e.stopPropagation()}
+                            placeholder="Título da seção"
+                          />
+                          {secoesEditadas.find(s => s.id === secao.id) && (
+                            <span className="edit-indicator" title="Alterações não salvas">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                              </svg>
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="form-group">
+                      <div className="form-group resumo-group">
                         <label>Resumo</label>
                         <textarea
                           value={getSecaoValue(secao.id, 'resumo') || ''}
@@ -1402,7 +1563,7 @@ const Secoes = () => {
                 <div key={secao.id} className="secao-card secao-card-nova">
                   <div className="secao-header">
                     <div className="secao-info">
-                      <div className="form-group">
+                      <div className="form-group titulo-group">
                         <label>Título</label>
                         <input
                           type="text"
@@ -1432,13 +1593,27 @@ const Secoes = () => {
                       </div>
                       <div className="form-group">
                         <label>Link 3D</label>
-                        <input
-                          type="url"
-                          value={secao.link3d || ''}
-                          onChange={(e) => atualizarNovaSecao(secao.id, 'link3d', e.target.value)}
-                          placeholder="https://..."
-                          className="secao-link3d-input"
-                        />
+                        <div className="link3d-container">
+                          <input
+                            type="url"
+                            value={secao.link3d || ''}
+                            onChange={(e) => atualizarNovaSecao(secao.id, 'link3d', e.target.value)}
+                            placeholder="https://..."
+                            className="secao-link3d-input"
+                          />
+                          <div className="link3d-order">
+                            <label>Ordem do Link 3D:</label>
+                            <input
+                              type="number"
+                              value={secao.ordem3d || ''}
+                              onChange={(e) => atualizarNovaSecao(secao.id, 'ordem3d', parseInt(e.target.value) || null)}
+                              className="order-input"
+                              placeholder="Ex: 3"
+                              min="2"
+                            />
+                            <small>Ordem de exibição (2 = após conteúdo, 3+ = entre/após imagens)</small>
+                          </div>
+                        </div>
                       </div>
                       
                       {/* Seção de imagens temporárias */}
@@ -1518,19 +1693,7 @@ const Secoes = () => {
             <div className="capitulo-content-continuo">
               {secoesFiltradas.map((secao) => (
                 <div key={secao.id} className="secao-content-item">
-                  {/* Mostrar título apenas se existir */}
-                  {secao.titulo && secao.titulo.trim() !== '' && (
-                    <h3 className="secao-titulo-continuo">{secao.titulo}</h3>
-                  )}
-                  
-                  {/* Mostrar resumo se existir */}
-                  {secao.resumo && secao.resumo.trim() !== '' && (
-                    <div className="secao-resumo-continuo">
-                      <p>{secao.resumo}</p>
-                    </div>
-                  )}
-                  
-                  {/* Renderizar conteúdo da seção */}
+                  {/* Renderizar conteúdo da seção com ordem correta */}
                   {renderSecaoContentUser(secao)}
                 </div>
               ))}

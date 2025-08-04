@@ -56,10 +56,6 @@ const AddImagemModal = ({ isOpen, onClose, onAdd, idSecao }) => {
       // Processar imagem usando o hook
       const processedImage = await processImage(formData.arquivo);
       
-      console.log('Imagem processada no modal:', processedImage);
-      console.log('Conteudo type:', typeof processedImage.conteudo);
-      console.log('Conteudo length:', processedImage.conteudo?.length);
-      
       const imagemData = {
         ...processedImage,
         descricao: formData.descricao,

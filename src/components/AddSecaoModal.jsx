@@ -46,9 +46,6 @@ const AddSecaoModal = ({ isOpen, onClose, onAdd, idCapitulo, proximaOrdem = 1 })
         ordem3d: parseInt(formData.ordem3d)
       };
       
-      // Log para debug
-      console.log('Enviando dados da seção:', secaoData);
-      
       await onAdd(secaoData);
       
       // Reset do formulário

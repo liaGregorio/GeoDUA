@@ -70,35 +70,20 @@ export const useImageUpload = () => {
       setUploading(true);
       setError(null);
       
-      console.log('🔧 Processando arquivo:', {
-        name: file.name,
-        size: file.size,
-        type: file.type
-      });
-      
       // Validar arquivo
       const validationErrors = validateImageFile(file);
       if (validationErrors.length > 0) {
         console.error('❌ Erro de validação:', validationErrors);
         throw new Error(validationErrors.join(', '));
       }
-      
-      console.log('✅ Arquivo validado com sucesso');
+
       
       // Comprimir imagem
-      console.log('📦 Comprimindo imagem...');
       const compressedFile = await compressImage(file);
-      console.log('✅ Imagem comprimida:', {
-        originalSize: file.size,
-        compressedSize: compressedFile.size,
-        compression: `${((1 - compressedFile.size / file.size) * 100).toFixed(1)}%`
-      });
       
       // Converter para array de bytes
-      console.log('🔄 Convertendo para array de bytes...');
       const { fileToBytea } = await import('../services/imagemService');
       const byteaContent = await fileToBytea(compressedFile);
-      console.log('✅ Conversão concluída, tamanho do array:', byteaContent.length);
       
       const result = {
         conteudo: Array.from(byteaContent),
@@ -107,14 +92,6 @@ export const useImageUpload = () => {
         originalSize: file.size,
         compressedSize: compressedFile.size
       };
-      
-      console.log('✅ Processamento completo:', {
-        conteudo_length: result.conteudo.length,
-        content_type: result.content_type,
-        originalName: result.originalName,
-        originalSize: result.originalSize,
-        compressedSize: result.compressedSize
-      });
       
       return result;
       

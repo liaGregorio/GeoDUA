@@ -1,0 +1,172 @@
+/* Estilos para reordenação de seções */
+
+.secao-reorder-controls {
+  display: flex;
+  align-items: center;
+  margin-right: 12px;
+}
+
+.order-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.order-button {
+  background: #519271;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 24px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.order-button:hover:not(:disabled) {
+  background: #3d6d54;
+  transform: translateY(1px);
+}
+
+.order-button:disabled {
+  background: #6b7280;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.order-button svg {
+  width: 12px;
+  height: 12px;
+}
+
+.secao-card.reordering {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Layout do título com botões */
+.secao-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.titulo-group {
+  flex: 1;
+  margin-bottom: 50px;
+}
+
+.titulo-group label {
+  display: block;
+  text-align: center;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.secao-titulo-input {
+  width: 50% !important;
+  margin: 0 auto;
+  display: block;
+}
+
+.resumo-group {
+  margin-bottom: 12px;
+}
+
+/* Estilos para campos de ordem do Link 3D */
+.link3d-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.link3d-order {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.link3d-order label {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.order-input {
+  width: 80px;
+  padding: 4px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.link3d-order small {
+  font-size: 11px;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Ajustes no header da seção para acomodar controles */
+.secao-header {
+  display: block;
+}
+
+.secao-info {
+  width: 100%;
+}
+
+/* Título inline para visualização do usuário */
+.secao-titulo-inline {
+  color: #1f2937;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .secao-reorder-controls {
+    margin-right: 8px;
+  }
+  
+  .order-button {
+    width: 20px;
+    height: 18px;
+  }
+  
+  .order-button svg {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .secao-title-row {
+    gap: 8px;
+  }
+  
+  .titulo-group label {
+    font-size: 12px;
+  }
+  
+  .secao-titulo-input {
+    width: 90%;
+  }
+  
+  .link3d-container {
+    gap: 6px;
+  }
+  
+  .order-input {
+    width: 60px;
+    padding: 3px 6px;
+    font-size: 12px;
+  }
+}
