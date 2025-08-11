@@ -30,6 +30,21 @@ export const authService = {
     }
   },
 
+  async loginWithGoogle(token) {
+    try {
+      const response = await api.post('/usuarios/auth/google', {
+        token
+      });
+      
+      return response.data;
+    } catch (error) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Erro ao fazer login com Google. Tente novamente.');
+    }
+  },
+
   async getProfile(token) {
     try {
       const response = await api.get('/usuarios/profile', {

@@ -74,6 +74,30 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const loginWithGoogle = async (googleToken) => {
+    try {
+      const response = await authService.loginWithGoogle(googleToken);
+      
+      if (response.success) {
+        const { token, user } = response.data;
+        
+        setToken(token);
+        setUser(user);
+        
+        // Salvar no localStorage
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        
+        return response;
+      } else {
+        throw new Error(response.message || 'Erro ao fazer login com Google');
+      }
+    } catch (error) {
+      console.error('Erro no login com Google:', error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -87,6 +111,7 @@ export function AuthProvider({ children }) {
     isLoading,
     login,
     register,
+    loginWithGoogle,
     logout,
     isAuthenticated: !!token && !!user
   };

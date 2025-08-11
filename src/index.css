@@ -1374,6 +1374,7 @@ body.dark-mode .error-details {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 30px;
+  margin-right: 70px;
   padding-bottom: 20px;
   border-bottom: 2px solid #e5e7eb;
 }
@@ -2138,6 +2139,7 @@ body.dark-mode .auth-copyright {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 30px;
+  margin-right: 70px;
   padding-bottom: 20px;
   border-bottom: 2px solid #e5e7eb;
 }
@@ -2266,7 +2268,7 @@ body.dark-mode .auth-copyright {
   flex: 1;
 }
 
-.secao-titulo-input {
+.secao-card-nova .secao-titulo-input {
   font-size: 18px;
   font-weight: 600;
   color: #1f2937;
@@ -3268,6 +3270,7 @@ body.dark-mode .auth-copyright {
     flex-direction: column;
     gap: 15px;
     text-align: center;
+    margin-right: 0;
   }
   
   .secoes-header .voltar-button,
@@ -4260,5 +4263,11 @@ body:not(.dark-mode) .secao-card-nova {
     padding: 14px 16px;
     font-size: 15px;
     height: 48px;
+  }
+}
+
+@media (max-width: 768px) {
+  .capitulos-header{
+     margin-right: 0;
   }
 }

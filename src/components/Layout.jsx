@@ -15,8 +15,9 @@ function Layout() {
   const [editMode, setEditMode] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Verificar se estamos na página de capítulos
+  // Verificar se estamos na página de capítulos ou seções
   const isCapitulosPage = location.pathname.includes('/capitulos');
+  const isSecoesPage = location.pathname.includes('/secoes');
   
   // Texto do botão de editar baseado na página atual
   const editButtonText = isCapitulosPage 
@@ -137,9 +138,9 @@ function Layout() {
                   {user ? (
                     <>
                       <div className="dropdown-user-info">
-                        <span className="user-name">{user.nome ? user.nome.split(' ')[0] : 'Usuário'}</span>
+                        <span className="user-name">{(user.nome || user.name) ? (user.nome || user.name).split(' ')[0] : 'Usuário'}</span>
                       </div>
-                      {user.tipoUsuario.id === 1 && (
+                      {user.tipoUsuario.id === 1 && !isSecoesPage && (
                         <button 
                           className="dropdown-item"
                           onClick={() => {

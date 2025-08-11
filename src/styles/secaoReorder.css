@@ -72,7 +72,7 @@
 }
 
 .secao-titulo-input {
-  width: 50% !important;
+  width: 90% !important;
   margin: 0 auto;
   display: block;
 }
@@ -155,9 +155,9 @@
   .titulo-group label {
     font-size: 12px;
   }
-  
-  .secao-titulo-input {
-    width: 90%;
+
+  .secao-card-nova .secao-titulo-input {
+    width: 100% !important;
   }
   
   .link3d-container {

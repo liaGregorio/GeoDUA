@@ -14,7 +14,7 @@ function Login() {
     const saved = localStorage.getItem('darkMode');
     return saved ? JSON.parse(saved) : false;
   });
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   // Aplicar o modo dark no body quando o componente montar
@@ -25,6 +25,32 @@ function Login() {
       document.body.classList.remove('dark-mode');
     }
   }, [darkMode]);
+
+  // Carregar o script do Google
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    document.body.appendChild(script);
+
+    script.onload = () => {
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+          callback: handleGoogleResponse,
+        });
+      }
+    };
+
+    return () => {
+      // Cleanup: remover script se componente for desmontado
+      const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+      if (existingScript) {
+        document.body.removeChild(existingScript);
+      }
+    };
+  }, []);
 
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;
@@ -64,9 +90,31 @@ function Login() {
     }
   };
 
+  const handleGoogleResponse = async (response) => {
+    try {
+      setIsLoading(true);
+      setError('');
+      
+      // O token do Google está em response.credential
+      const googleToken = response.credential;
+      
+      // Fazer login com Google através do AuthContext
+      await loginWithGoogle(googleToken);
+      
+      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Erro ao fazer login com Google');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleGoogleLogin = () => {
-    // Implementar login com Google futuramente
-    console.log('Login com Google');
+    if (window.google) {
+      window.google.accounts.id.prompt();
+    } else {
+      setError('Google SDK não carregado. Tente recarregar a página.');
+    }
   };
 
   const togglePasswordVisibility = () => {
