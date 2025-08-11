@@ -1569,7 +1569,7 @@ const Secoes = () => {
                           type="text"
                           value={secao.titulo || ''}
                           onChange={(e) => atualizarNovaSecao(secao.id, 'titulo', e.target.value)}
-                          className="secao-titulo-input"
+                          className="secao-titulo-input-nova"
                           placeholder="Título da nova seção (opcional)"
                         />
                       </div>
