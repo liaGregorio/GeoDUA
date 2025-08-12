@@ -1828,7 +1828,6 @@ body.dark-mode .error-details {
   user-select: none;
   position: relative;
   justify-content: flex-start;
-  margin-left: 20px;
   line-height: 1.2;
 }
 
@@ -1847,6 +1846,7 @@ body.dark-mode .error-details {
   flex-shrink: 0;
   margin: 0 12px 0 0;
   vertical-align: middle;
+  max-width: 20px;
 }
 
 .checkbox-input:checked {
@@ -1957,25 +1957,52 @@ body.dark-mode .auth-input::placeholder {
 }
 
 body.dark-mode .auth-footer p {
-  color: #333;
+  color: #e5e5e5;
 }
 
 body.dark-mode .auth-card:not(.register-card) .auth-footer a {
-  color: #333;
+  color: #f0f0f0;
   font-weight: bold;
 }
 
 body.dark-mode .auth-card:not(.register-card) .auth-footer a:hover {
-  color: #555;
+  color: #ffffff;
 }
 
 body.dark-mode .register-card .auth-footer a {
-  color: #333;
+  color: #f0f0f0;
   font-weight: bold;
 }
 
 body.dark-mode .register-card .auth-footer a:hover {
-  color: #555;
+  color: #ffffff;
+}
+
+/* Estilos do checkbox no modo escuro */
+body.dark-mode .checkbox-label {
+  color: #e5e5e5 !important;
+}
+
+body.dark-mode .checkbox-input {
+  border-color: #e5e5e5;
+  background-color: transparent;
+}
+
+body.dark-mode .checkbox-input:checked {
+  background-color: #e5e5e5;
+  border-color: #e5e5e5;
+}
+
+body.dark-mode .checkbox-input:checked::after {
+  color: #2d5742;
+}
+
+body.dark-mode .checkbox-input:hover {
+  box-shadow: 0 0 0 2px rgba(229, 229, 229, 0.2);
+}
+
+body.dark-mode .checkbox-input:focus {
+  box-shadow: 0 0 0 3px rgba(229, 229, 229, 0.3);
 }
 
 /* Dark mode button styles */

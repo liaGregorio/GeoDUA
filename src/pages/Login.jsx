@@ -39,15 +39,32 @@ function Login() {
         window.google.accounts.id.initialize({
           client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
           callback: handleGoogleResponse,
+          auto_select: false,
+          cancel_on_tap_outside: false
+        });
+        
+        // Renderizar o botão invisível do Google para funcionalidade
+        const hiddenDiv = document.createElement('div');
+        hiddenDiv.id = 'hidden-google-btn';
+        hiddenDiv.style.display = 'none';
+        document.body.appendChild(hiddenDiv);
+        
+        window.google.accounts.id.renderButton(hiddenDiv, {
+          theme: 'outline',
+          size: 'large'
         });
       }
     };
 
     return () => {
-      // Cleanup: remover script se componente for desmontado
+      // Cleanup
       const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
       if (existingScript) {
         document.body.removeChild(existingScript);
+      }
+      const hiddenDiv = document.getElementById('hidden-google-btn');
+      if (hiddenDiv) {
+        document.body.removeChild(hiddenDiv);
       }
     };
   }, []);
@@ -110,10 +127,17 @@ function Login() {
   };
 
   const handleGoogleLogin = () => {
-    if (window.google) {
-      window.google.accounts.id.prompt();
+    // Simular clique no botão invisível do Google
+    const hiddenButton = document.querySelector('#hidden-google-btn [role="button"]');
+    if (hiddenButton) {
+      hiddenButton.click();
     } else {
-      setError('Google SDK não carregado. Tente recarregar a página.');
+      // Fallback: tentar o prompt diretamente
+      if (window.google && window.google.accounts) {
+        window.google.accounts.id.prompt();
+      } else {
+        setError('Google SDK não carregado. Tente recarregar a página.');
+      }
     }
   };
 
