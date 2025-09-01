@@ -12,16 +12,14 @@ function Layout() {
     return saved ? JSON.parse(saved) : false;
   });
   const [searchTerm, setSearchTerm] = useState('');
-  const [editMode, setEditMode] = useState(() => {
-    // Só restaurar edit mode se o usuário for admin (será validado no useEffect)
-    return false;
-  });
+  const [editMode, setEditMode] = useState(false); // Sempre iniciar como false, será restaurado no useEffect
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editModeRestored, setEditModeRestored] = useState(false); // Flag para controlar se já restaurou
+  const [shouldSaveEditMode, setShouldSaveEditMode] = useState(false); // Flag para controlar quando salvar
 
   // Verificar se estamos na página de capítulos ou seções
   const isCapitulosPage = location.pathname.includes('/capitulos');
   const isSecoesPage = location.pathname.includes('/secoes');
-  const isLivrosPage = location.pathname.includes('/livros') || location.pathname === '/';
   
   // Texto do botão de editar baseado na página atual
   const getEditButtonText = () => {
@@ -57,25 +55,33 @@ function Layout() {
     };
   }, [menuOpen]);
 
-  // Salvar edit mode no localStorage sempre que mudar
+  // Salvar edit mode no localStorage apenas quando o usuário faz mudanças intencionais
   useEffect(() => {
-    localStorage.setItem('editMode', editMode.toString());
-  }, [editMode]);
+    // Só salvar se foi autorizado e o usuário já foi carregado
+    if (shouldSaveEditMode && user !== null && user !== undefined) {
+      localStorage.setItem('editMode', editMode.toString());
+      setShouldSaveEditMode(false); // Resetar flag
+    }
+  }, [editMode, shouldSaveEditMode, user]);
 
   // Restaurar edit mode do localStorage apenas para admins
   useEffect(() => {
-    if (user && user.tipoUsuario && user.tipoUsuario.id === 1) {
-      const savedEditMode = localStorage.getItem('editMode');
-      if (savedEditMode === 'true') {
-        setEditMode(true);
-      }
-    } else {
-      // Se não for admin, forçar edit mode como false
-      if (editMode) {
+    // Só executar uma vez e se o usuário estiver definido
+    if (user !== null && user !== undefined && !editModeRestored) {
+      setEditModeRestored(true); // Marcar como já processado
+      
+      if (user && user.tipoUsuario && user.tipoUsuario.id === 1) {
+        const savedEditMode = localStorage.getItem('editMode');
+        if (savedEditMode === 'true') {
+          setEditMode(true);
+          // NÃO ativar shouldSaveEditMode aqui - é só restauração
+        }
+      } else if (user) {
+        // Se for usuário logado mas não admin, garantir que edit mode seja false
         setEditMode(false);
       }
     }
-  }, [user]); // Executar sempre que o usuário mudar (login/logout)
+  }, [user, editModeRestored]);
 
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;
@@ -93,8 +99,10 @@ function Layout() {
   };
 
   const handleLogout = () => {
-    // Limpar edit mode ao fazer logout
+    // Limpar edit mode e resetar flags ao fazer logout
     setEditMode(false);
+    setEditModeRestored(false);
+    setShouldSaveEditMode(false);
     logout();
     navigate('/login');
     setMenuOpen(false);
@@ -177,6 +185,7 @@ function Layout() {
                           className="dropdown-item"
                           onClick={() => {
                             setEditMode(!editMode);
+                            setShouldSaveEditMode(true); // Ativar flag para salvar
                             setMenuOpen(false);
                           }}
                         >

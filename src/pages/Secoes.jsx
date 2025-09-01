@@ -1077,18 +1077,40 @@ const Secoes = () => {
         return todasSecoes;
       });
       
-      // ATUALIZAR seções editadas APENAS para seções que JÁ ESTAVAM EDITADAS
-      // Não adicionar seções novas em secoesEditadas só por causa da reordenação
-      const novasSecoesEditadas = secoesEditadas.map(secaoEditada => {
-        // Encontrar a nova posição desta seção que já estava editada
-        const novaPosicao = secoesReordenadas.findIndex(s => s.id === secaoEditada.id);
-        if (novaPosicao !== -1) {
-          return {
-            ...secaoEditada,
-            ordem: novaPosicao + 1
-          };
+      // ATUALIZAR seções editadas: incluir todas as seções que tiveram ordem alterada
+      const novasSecoesEditadas = [...secoesEditadas];
+      
+      secoesReordenadas.forEach((secao, index) => {
+        const novaOrdem = index + 1;
+        const secaoOriginal = secoesOriginais.find(s => s.id === secao.id);
+        
+        // Se a ordem mudou em relação à original, precisa marcar para salvamento
+        if (secaoOriginal && secaoOriginal.ordem !== novaOrdem) {
+          const secaoEditadaIndex = novasSecoesEditadas.findIndex(s => s.id === secao.id);
+          
+          if (secaoEditadaIndex >= 0) {
+            // Atualizar seção já em edição - PRESERVAR todos os campos existentes
+            novasSecoesEditadas[secaoEditadaIndex] = {
+              ...novasSecoesEditadas[secaoEditadaIndex],
+              ordem: novaOrdem
+            };
+          } else {
+            // Adicionar nova seção à lista de editadas
+            // IMPORTANTE: Preservar todos os valores atuais da seção do estado 'secoes'
+            const secaoAtual = secoes.find(s => s.id === secao.id);
+            if (secaoAtual) {
+              novasSecoesEditadas.push({
+                id: secao.id,
+                titulo: secaoAtual.titulo,
+                resumo: secaoAtual.resumo,
+                original: secaoAtual.original,
+                link3d: secaoAtual.link3d,
+                ordem3d: secaoAtual.ordem3d,
+                ordem: novaOrdem // Apenas a ordem é diferente
+              });
+            }
+          }
         }
-        return secaoEditada;
       });
       
       setSecoesEditadas(novasSecoesEditadas);
@@ -1815,8 +1837,8 @@ const Secoes = () => {
                   </div>
                 ))}
 
-                {/* Botão para adicionar nova seção - só mostra se já existem seções */}
-                {secoesFiltradas.length > 0 && (
+                {/* Botão para adicionar nova seção - aparece quando há conteúdo (seções existentes ou uma nova criada) */}
+                {(secoesFiltradas.length > 0 || novasSecoes.length > 0) && (
                   <div className="add-secao-container">
                     <button 
                       className="add-secao-button"

@@ -4273,8 +4273,10 @@ body:not(.dark-mode) .secao-card-nova {
   }
   
   .confirm-modal {
-    max-height: 60vh; /* Altura menor no celular */
+    max-height: 70% !important; /* Altura automática baseada no conteúdo */
     height: auto;
+    min-height: unset; /* Remove altura mínima */
+    max-width: 90%; /* Limita largura no mobile */
   }
   
   .modal-header,
