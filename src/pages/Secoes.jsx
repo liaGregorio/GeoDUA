@@ -225,10 +225,19 @@ const Secoes = () => {
         secao.id === secaoId ? { ...secao, [field]: value } : secao
       ));
     } else {
-      // Adicionar nova seção à lista de editadas apenas com o campo que está sendo editado
+      // Buscar a seção original para preservar todos os campos existentes
+      const secaoOriginal = secoes.find(s => s.id === secaoId);
+      
+      // Adicionar nova seção à lista de editadas preservando os campos originais
       setSecoesEditadas(prev => [...prev, {
         id: secaoId,
-        [field]: value
+        titulo: secaoOriginal?.titulo || '',
+        resumo: secaoOriginal?.resumo || '',
+        original: secaoOriginal?.original || '',
+        link3d: secaoOriginal?.link3d || '',
+        ordem3d: secaoOriginal?.ordem3d || 1,
+        ordem: secaoOriginal?.ordem || 0,
+        [field]: value // Sobrescreve o campo sendo editado
       }]);
     }
   };
