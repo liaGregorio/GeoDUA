@@ -12,7 +12,10 @@ function Layout() {
     return saved ? JSON.parse(saved) : false;
   });
   const [searchTerm, setSearchTerm] = useState('');
-  const [editMode, setEditMode] = useState(false);
+  const [editMode, setEditMode] = useState(() => {
+    // Só restaurar edit mode se o usuário for admin (será validado no useEffect)
+    return false;
+  });
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Verificar se estamos na página de capítulos ou seções
@@ -54,6 +57,26 @@ function Layout() {
     };
   }, [menuOpen]);
 
+  // Salvar edit mode no localStorage sempre que mudar
+  useEffect(() => {
+    localStorage.setItem('editMode', editMode.toString());
+  }, [editMode]);
+
+  // Restaurar edit mode do localStorage apenas para admins
+  useEffect(() => {
+    if (user && user.tipoUsuario && user.tipoUsuario.id === 1) {
+      const savedEditMode = localStorage.getItem('editMode');
+      if (savedEditMode === 'true') {
+        setEditMode(true);
+      }
+    } else {
+      // Se não for admin, forçar edit mode como false
+      if (editMode) {
+        setEditMode(false);
+      }
+    }
+  }, [user]); // Executar sempre que o usuário mudar (login/logout)
+
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
@@ -70,6 +93,8 @@ function Layout() {
   };
 
   const handleLogout = () => {
+    // Limpar edit mode ao fazer logout
+    setEditMode(false);
     logout();
     navigate('/login');
     setMenuOpen(false);

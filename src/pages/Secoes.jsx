@@ -225,12 +225,11 @@ const Secoes = () => {
         secao.id === secaoId ? { ...secao, [field]: value } : secao
       ));
     } else {
-      // Adicionar nova seção à lista de editadas
-      const secaoOriginal = secoes.find(s => s.id === secaoId);
-      if (secaoOriginal) {
-        const secaoEditada = { ...secaoOriginal, [field]: value };
-        setSecoesEditadas(prev => [...prev, secaoEditada]);
-      }
+      // Adicionar nova seção à lista de editadas apenas com o campo que está sendo editado
+      setSecoesEditadas(prev => [...prev, {
+        id: secaoId,
+        [field]: value
+      }]);
     }
   };
 
@@ -1055,57 +1054,41 @@ const Secoes = () => {
     try {
       setReordenandoSecoes(true);
       
-      // Criar lista de seções com as alterações aplicadas
-      const secoesComAlteracoes = secoesFiltradas.map(secao => {
-        const secaoEditada = secoesEditadas.find(s => s.id === secao.id);
-        return secaoEditada ? { ...secao, ...secaoEditada } : secao;
-      });
-      
-      // Criar nova lista de seções reordenada (preservando alterações)
-      const secoesReordenadas = [...secoesComAlteracoes];
+      // Trabalhar apenas com os dados originais das seções filtradas
+      const secoesReordenadas = [...secoesFiltradas];
       const [removedSecao] = secoesReordenadas.splice(startIndex, 1);
       secoesReordenadas.splice(endIndex, 0, removedSecao);
       
-      // Atualizar ordens mantendo todas as alterações
-      const secoesComNovaOrdem = secoesReordenadas.map((secao, index) => ({
-        ...secao,
-        ordem: index + 1
-      }));
-      
-      // Atualizar estado local para feedback visual imediato
+      // Atualizar apenas as ordens no estado original (sem tocar nos outros campos)
       setSecoes(prev => {
         const todasSecoes = [...prev];
         
-        secoesComNovaOrdem.forEach(secaoReordenada => {
-          const index = todasSecoes.findIndex(s => s.id === secaoReordenada.id);
-          if (index !== -1) {
-            // Só atualizar a ordem no estado original, preservando outras alterações em secoesEditadas
-            todasSecoes[index] = { ...todasSecoes[index], ordem: secaoReordenada.ordem };
+        secoesReordenadas.forEach((secao, index) => {
+          const secaoIndex = todasSecoes.findIndex(s => s.id === secao.id);
+          if (secaoIndex !== -1) {
+            // APENAS atualizar a ordem, mantendo todos os outros campos originais intactos
+            todasSecoes[secaoIndex] = { 
+              ...todasSecoes[secaoIndex], 
+              ordem: index + 1 
+            };
           }
         });
         
         return todasSecoes;
       });
       
-      // Atualizar seções editadas preservando todas as alterações e aplicando nova ordem
-      const novasSecoesEditadas = [...secoesEditadas];
-      
-      secoesComNovaOrdem.forEach(secaoReordenada => {
-        const indexEditada = novasSecoesEditadas.findIndex(s => s.id === secaoReordenada.id);
-        
-        if (indexEditada === -1) {
-          // Seção não está na lista de editadas, adicionar com a nova ordem
-          novasSecoesEditadas.push({
-            id: secaoReordenada.id,
-            ordem: secaoReordenada.ordem
-          });
-        } else {
-          // Seção já está na lista de editadas, atualizar ordem preservando outras alterações
-          novasSecoesEditadas[indexEditada] = { 
-            ...novasSecoesEditadas[indexEditada], 
-            ordem: secaoReordenada.ordem 
+      // ATUALIZAR seções editadas APENAS para seções que JÁ ESTAVAM EDITADAS
+      // Não adicionar seções novas em secoesEditadas só por causa da reordenação
+      const novasSecoesEditadas = secoesEditadas.map(secaoEditada => {
+        // Encontrar a nova posição desta seção que já estava editada
+        const novaPosicao = secoesReordenadas.findIndex(s => s.id === secaoEditada.id);
+        if (novaPosicao !== -1) {
+          return {
+            ...secaoEditada,
+            ordem: novaPosicao + 1
           };
         }
+        return secaoEditada;
       });
       
       setSecoesEditadas(novasSecoesEditadas);

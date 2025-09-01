@@ -3682,9 +3682,24 @@ body.dark-mode .auth-copyright {
     margin-right: 0;
   }
   
+  .header-left {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
   .secoes-header .voltar-button,
   .secoes-header .add-secao-button {
     align-self: flex-start;
+    margin-left: 16px; /* Espaçamento mínimo à esquerda para evitar grudar na borda */
+  }
+  
+  .secoes-title {
+    width: 100%;
+    text-align: center;
+    margin-right: 0;
+    padding: 0 16px; /* Padding lateral para balancear com o botão */
   }
   
   .secao-header {
