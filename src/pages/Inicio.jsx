@@ -44,6 +44,7 @@ const Inicio = () => {
     livro.nome?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Recebe o nome do livro a ser adicionado
   const handleAddBook = async (bookName) => {
     try {
       await createBook(bookName);

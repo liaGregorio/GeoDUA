@@ -18,11 +18,18 @@ function Layout() {
   // Verificar se estamos na página de capítulos ou seções
   const isCapitulosPage = location.pathname.includes('/capitulos');
   const isSecoesPage = location.pathname.includes('/secoes');
+  const isLivrosPage = location.pathname.includes('/livros') || location.pathname === '/';
   
   // Texto do botão de editar baseado na página atual
-  const editButtonText = isCapitulosPage 
-    ? (editMode ? 'Visualizar capítulos' : 'Editar capítulos')
-    : (editMode ? 'Visualizar livros' : 'Editar livros');
+  const getEditButtonText = () => {
+    if (isSecoesPage) {
+      return editMode ? 'Visualizar seções' : 'Editar seções';
+    } else if (isCapitulosPage) {
+      return editMode ? 'Visualizar capítulos' : 'Editar capítulos';
+    } else {
+      return editMode ? 'Visualizar livros' : 'Editar livros';
+    }
+  };
 
   // Aplicar o modo dark no body quando o componente montar
   useEffect(() => {
@@ -140,7 +147,7 @@ function Layout() {
                       <div className="dropdown-user-info">
                         <span className="user-name">{(user.nome || user.name) ? (user.nome || user.name).split(' ')[0] : 'Usuário'}</span>
                       </div>
-                      {user.tipoUsuario.id === 1 && !isSecoesPage && (
+                      {user.tipoUsuario.id === 1 && (
                         <button 
                           className="dropdown-item"
                           onClick={() => {
@@ -148,7 +155,7 @@ function Layout() {
                             setMenuOpen(false);
                           }}
                         >
-                          {editButtonText}
+                          {getEditButtonText()}
                         </button>
                       )}
                       <button 
@@ -178,7 +185,7 @@ function Layout() {
 
       {/* Main content */}
       <main className="main-content">
-        <Outlet context={{ searchTerm, editMode }} />
+        <Outlet context={{ searchTerm, editMode, setEditMode }} />
       </main>
 
       {/* Footer */}

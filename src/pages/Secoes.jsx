@@ -14,7 +14,7 @@ const Secoes = () => {
   const { livroId, capituloId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { editMode, searchTerm } = useOutletContext();
+  const { searchTerm, editMode, setEditMode } = useOutletContext();
   
   const [secoes, setSecoes] = useState([]);
   const [secoesOriginais, setSecoesOriginais] = useState([]); // Estado para preservar ordem original
@@ -24,6 +24,9 @@ const Secoes = () => {
   const [expandedSecao, setExpandedSecao] = useState(null);
   const [secaoImages, setSecaoImages] = useState({});
   const [loadingImages, setLoadingImages] = useState({});
+  
+  // Estado para notificações
+  const [notification, setNotification] = useState({ show: false, type: '', message: '' });
   
   // Estados para edição inline (sempre ativo para admins)
   const [secoesEditadas, setSecoesEditadas] = useState([]);
@@ -44,6 +47,14 @@ const Secoes = () => {
   // Estados para reordenação de seções
   const [reordenandoSecoes, setReordenandoSecoes] = useState(false);
   
+  // Estado para controlar a visibilidade do botão "voltar ao topo"
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [editModeScrolled, setEditModeScrolled] = useState(false);
+  
+  // Estados para drag and drop
+  const [draggedSecao, setDraggedSecao] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  
   // Estados dos modais (manter apenas para imagens)
   const [showDeleteSecaoModal, setShowDeleteSecaoModal] = useState(false);
   const [showAddImagemModal, setShowAddImagemModal] = useState(false);
@@ -53,6 +64,45 @@ const Secoes = () => {
 
   // Verificar se o usuário pode gerenciar seções
   const canManageSecoes = user && user.tipoUsuario && user.tipoUsuario.id === 1;
+
+  // Função para mostrar notificações
+  const showNotification = (type, message) => {
+    setNotification({ show: true, type, message });
+    setTimeout(() => {
+      setNotification({ show: false, type: '', message: '' });
+    }, 5000);
+  };
+
+  // Funções para controle do modo de edição
+  const hasUnsavedChanges = () => {
+    return secoesEditadas.length > 0 || 
+           novasSecoes.length > 0 || 
+           Object.keys(imagensTemporarias).length > 0 || 
+           Object.keys(imagensEditadas).length > 0 || 
+           Object.keys(imagensMarcadasParaRemocao).length > 0;
+  };
+
+  const exitEditModeAfterSave = () => {
+    setEditMode(false);
+    showNotification('success', 'Alterações salvas com sucesso!');
+  };
+
+  // Verificar alterações não salvas ao sair do modo de edição
+  useEffect(() => {
+    if (!editMode && hasUnsavedChanges()) {
+      if (window.confirm('Você tem alterações não salvas. Deseja descartá-las?')) {
+        // Limpar alterações pendentes
+        setSecoesEditadas([]);
+        setNovasSecoes([]);
+        setImagensTemporarias({});
+        setImagensEditadas({});
+        setImagensMarcadasParaRemocao({});
+      } else {
+        // Voltar ao modo de edição se cancelar
+        setEditMode(true);
+      }
+    }
+  }, [editMode]);
 
   // Buscar informações do capítulo
   const fetchCapitulo = async () => {
@@ -124,6 +174,18 @@ const Secoes = () => {
     fetchCapitulo();
     fetchSecoes();
   }, [livroId, capituloId]);
+
+  // Controlar visibilidade do botão "voltar ao topo" e posição do edit mode
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.pageYOffset;
+      setShowBackToTop(scrollY > 300);
+      setEditModeScrolled(scrollY > 100); // Muda posição após 100px de scroll
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Filtrar seções baseado na pesquisa
   const secoesFiltradas = (secoes || []).filter(secao => {
@@ -307,7 +369,7 @@ const Secoes = () => {
 
     // Adicionar link 3D se existir (ordem configurável, mas sempre após conteúdo)
     if (secao.link3d && secao.link3d.trim() !== '') {
-      const ordem3d = secao.ordem3d || (imagens.length + 2); // Padrão: após todas as imagens
+      const ordem3d = secao.ordem3d || 1; // Padrão: ordem 1 (após o conteúdo)
       items.push({
         type: 'link3d',
         content: secao.link3d,
@@ -479,29 +541,31 @@ const Secoes = () => {
           />
         </div>
 
-        {/* Campo Link 3D */}
+        {/* Campo Link 3D com melhor organização */}
         <div className="secao-link3d">
-          <h4>Link 3D:</h4>
+          <h4>Link 3D (opcional):</h4>
           <div className="link3d-container">
             <input
               type="url"
               value={getSecaoValue(secao.id, 'link3d') || ''}
               onChange={(e) => handleUpdateSecao(secao.id, 'link3d', e.target.value)}
               className="secao-link3d-input"
-              placeholder="https://..."
+              placeholder="https://exemplo.com/modelo-3d"
             />
-            <div className="link3d-order">
-              <label>Ordem do Link 3D:</label>
-              <input
-                type="number"
-                value={getSecaoValue(secao.id, 'ordem3d') || ''}
-                onChange={(e) => handleUpdateSecao(secao.id, 'ordem3d', parseInt(e.target.value) || null)}
-                className="order-input"
-                placeholder="Ex: 3"
-                min="2"
-              />
-              <small>Ordem de exibição (2 = após conteúdo, 3+ = entre/após imagens)</small>
-            </div>
+            {getSecaoValue(secao.id, 'link3d') && (
+              <div className="link3d-order">
+                <label>Posição do Link 3D:</label>
+                <select
+                  value={getSecaoValue(secao.id, 'ordem3d') || 1}
+                  onChange={(e) => handleUpdateSecao(secao.id, 'ordem3d', parseInt(e.target.value))}
+                  className="order-select"
+                >
+                  <option value={1}>Após o conteúdo</option>
+                  <option value={99}>No final (após todas as imagens)</option>
+                </select>
+                <small>Define onde o link 3D aparecerá no conteúdo</small>
+              </div>
+            )}
           </div>
         </div>
 
@@ -623,7 +687,7 @@ const Secoes = () => {
                 );
                 
                 return (imagensExistentesVisiveis.length === 0 && imagensTemporariasVisiveis.length === 0) && (
-                  <p className="no-images">Nenhuma imagem cadastrada</p>
+                  <p className="no-images">Nenhuma imagem adicionada</p>
                 );
               })()}
             </div>
@@ -803,6 +867,9 @@ const Secoes = () => {
   const renderImagensTemporarias = (secaoId) => {
     const imagens = imagensTemporarias[secaoId] || [];
     const isUploading = uploadingImages[secaoId];
+    const imagensFiltradas = imagens.filter(img => 
+      !imagensMarcadasParaRemocao[secaoId]?.includes(img.id)
+    );
     
     return (
       <div className="secao-imagens-temporarias">
@@ -833,16 +900,7 @@ const Secoes = () => {
         )}
         
         <div className="imagens-grid-temp">
-          {imagens.map((imagem, originalIndex) => {
-            const marcadaParaRemocao = imagensMarcadasParaRemocao[secaoId]?.includes(imagem.id);
-            if (marcadaParaRemocao) return null;
-            
-            // Calcular índice real considerando apenas imagens visíveis
-            const imagensVisiveis = imagens.filter(img => 
-              !imagensMarcadasParaRemocao[secaoId]?.includes(img.id)
-            );
-            const indexVisivel = imagensVisiveis.findIndex(img => img.id === imagem.id);
-            
+          {imagensFiltradas.map((imagem, index) => {
             return (
             <div key={imagem.id} className="imagem-temporaria">
               <div className="image-preview">
@@ -877,21 +935,29 @@ const Secoes = () => {
                   className="image-description-input"
                 />
                 <div className="image-order">
-                  <span>Ordem: {imagem.ordem}</span>
-                  {indexVisivel > 0 && (
+                  <span>Posição: {imagem.ordem}</span>
+                  {index > 0 && (
                     <button
                       type="button"
-                      onClick={() => reordenarImagensTemporarias(secaoId, originalIndex, originalIndex - 1)}
+                      onClick={() => {
+                        // Encontrar índice original
+                        const originalIndex = imagens.findIndex(img => img.id === imagem.id);
+                        reordenarImagensTemporarias(secaoId, originalIndex, originalIndex - 1);
+                      }}
                       className="order-button"
                       title="Mover para cima"
                     >
                       ↑
                     </button>
                   )}
-                  {indexVisivel < imagensVisiveis.length - 1 && (
+                  {index < imagensFiltradas.length - 1 && (
                     <button
                       type="button"
-                      onClick={() => reordenarImagensTemporarias(secaoId, originalIndex, originalIndex + 1)}
+                      onClick={() => {
+                        // Encontrar índice original
+                        const originalIndex = imagens.findIndex(img => img.id === imagem.id);
+                        reordenarImagensTemporarias(secaoId, originalIndex, originalIndex + 1);
+                      }}
                       className="order-button"
                       title="Mover para baixo"
                     >
@@ -903,7 +969,7 @@ const Secoes = () => {
             </div>
             );
           })}
-          {imagens.filter(img => !imagensMarcadasParaRemocao[secaoId]?.includes(img.id)).length === 0 && (
+          {imagensFiltradas.length === 0 && !isUploading && (
             <p className="no-images-temp">Nenhuma imagem adicionada</p>
           )}
         </div>
@@ -989,12 +1055,18 @@ const Secoes = () => {
     try {
       setReordenandoSecoes(true);
       
-      // Criar nova lista de seções reordenada
-      const secoesReordenadas = [...secoesFiltradas];
+      // Criar lista de seções com as alterações aplicadas
+      const secoesComAlteracoes = secoesFiltradas.map(secao => {
+        const secaoEditada = secoesEditadas.find(s => s.id === secao.id);
+        return secaoEditada ? { ...secao, ...secaoEditada } : secao;
+      });
+      
+      // Criar nova lista de seções reordenada (preservando alterações)
+      const secoesReordenadas = [...secoesComAlteracoes];
       const [removedSecao] = secoesReordenadas.splice(startIndex, 1);
       secoesReordenadas.splice(endIndex, 0, removedSecao);
       
-      // Atualizar ordens temporariamente para visualização
+      // Atualizar ordens mantendo todas as alterações
       const secoesComNovaOrdem = secoesReordenadas.map((secao, index) => ({
         ...secao,
         ordem: index + 1
@@ -1007,25 +1079,32 @@ const Secoes = () => {
         secoesComNovaOrdem.forEach(secaoReordenada => {
           const index = todasSecoes.findIndex(s => s.id === secaoReordenada.id);
           if (index !== -1) {
-            todasSecoes[index] = secaoReordenada;
+            // Só atualizar a ordem no estado original, preservando outras alterações em secoesEditadas
+            todasSecoes[index] = { ...todasSecoes[index], ordem: secaoReordenada.ordem };
           }
         });
         
         return todasSecoes;
       });
       
-      // Adicionar seções modificadas à lista de editadas para salvar depois
+      // Atualizar seções editadas preservando todas as alterações e aplicando nova ordem
       const novasSecoesEditadas = [...secoesEditadas];
       
       secoesComNovaOrdem.forEach(secaoReordenada => {
         const indexEditada = novasSecoesEditadas.findIndex(s => s.id === secaoReordenada.id);
         
         if (indexEditada === -1) {
-          // Seção não está na lista de editadas, adicionar
-          novasSecoesEditadas.push(secaoReordenada);
+          // Seção não está na lista de editadas, adicionar com a nova ordem
+          novasSecoesEditadas.push({
+            id: secaoReordenada.id,
+            ordem: secaoReordenada.ordem
+          });
         } else {
-          // Seção já está na lista de editadas, atualizar
-          novasSecoesEditadas[indexEditada] = { ...novasSecoesEditadas[indexEditada], ...secaoReordenada };
+          // Seção já está na lista de editadas, atualizar ordem preservando outras alterações
+          novasSecoesEditadas[indexEditada] = { 
+            ...novasSecoesEditadas[indexEditada], 
+            ordem: secaoReordenada.ordem 
+          };
         }
       });
       
@@ -1053,6 +1132,49 @@ const Secoes = () => {
     }
     
     reordenarSecoes(secaoIndex, newIndex);
+  };
+
+  // Funções para drag and drop
+  const handleDragStart = (e, secao, index) => {
+    setDraggedSecao({ secao, index });
+    e.dataTransfer.effectAllowed = 'move';
+    e.target.classList.add('dragging');
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = (e) => {
+    // Só remove o indicador se estivermos realmente saindo do elemento
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDragOverIndex(null);
+    }
+  };
+
+  const handleDrop = (e, dropIndex) => {
+    e.preventDefault();
+    
+    if (draggedSecao && draggedSecao.index !== dropIndex) {
+      reordenarSecoes(draggedSecao.index, dropIndex);
+    }
+    
+    setDraggedSecao(null);
+    setDragOverIndex(null);
+    
+    // Remover classe de arraste
+    const draggedElement = document.querySelector('.dragging');
+    if (draggedElement) {
+      draggedElement.classList.remove('dragging');
+    }
+  };
+
+  const handleDragEnd = (e) => {
+    setDraggedSecao(null);
+    setDragOverIndex(null);
+    e.target.classList.remove('dragging');
   };
 
   // Funções dos modais
@@ -1198,6 +1320,12 @@ const Secoes = () => {
     try {
       setSaving(true);
       
+      let secoesAdicionadas = 0;
+      let secoesModificadas = 0;  // Renomeado para evitar colisão
+      let secoesRemovidas = 0;
+      let imagensAdicionadas = 0;
+      let imagensRemovidas = 0;
+      
       // Salvar alterações nas seções existentes
       for (const secaoEditada of secoesEditadas) {
         const secaoOriginal = secoesOriginais.find(s => s.id === secaoEditada.id);
@@ -1220,6 +1348,7 @@ const Secoes = () => {
           if (temMudancas) {
             try {
               await updateSecao(secaoEditada.id, secaoEditada);
+              secoesModificadas++;  // Usando a variável renomeada
             } catch (updateError) {
               console.error(`Erro ao salvar seção ${secaoEditada.id}:`, updateError);
               throw updateError;
@@ -1259,6 +1388,7 @@ const Secoes = () => {
                 id_secao: parseInt(secaoId)
               };
               await createImagem(imagemData);
+              imagensAdicionadas++;
               
               // Marcar seção para recarregar imagens
               if (!secoesComImagensNovas.includes(secaoId)) {
@@ -1282,6 +1412,7 @@ const Secoes = () => {
               const imagemId = imagemMarcada.replace('saved-', '');
               try {
                 await deleteImagem(parseInt(imagemId));
+                imagensRemovidas++;
                 
                 // Marcar seção para recarregar imagens
                 if (!secoesComImagensNovas.includes(secaoId)) {
@@ -1303,6 +1434,7 @@ const Secoes = () => {
         // Criar a seção primeiro
         const secaoCriada = await createSecao(secaoData);
         const secaoId = secaoCriada.id;
+        secoesAdicionadas++;
         
         // Se há imagens temporárias para esta seção, criá-las
         const imagensSecao = imagensTemporarias[id] || [];
@@ -1322,6 +1454,7 @@ const Secoes = () => {
               id_secao: secaoId
             };
             await createImagem(imagemData);
+            imagensAdicionadas++;
           } catch (imgError) {
             console.error('Erro ao salvar imagem:', imgError);
             // Continua salvando outras imagens mesmo se uma falhar
@@ -1337,43 +1470,34 @@ const Secoes = () => {
         await fetchImagensSecao(secaoId, true);
       }
       
+      // Limpar estados de edição
       setSecoesEditadas([]);
       setNovasSecoes([]);
       setImagensTemporarias({});
       setImagensEditadas({});
       setImagensMarcadasParaRemocao({});
+      
+      // Mostrar notificação de sucesso
+      let mensagem = 'Alterações salvas com sucesso!';
+      const detalhes = [];
+      
+      if (secoesAdicionadas > 0) detalhes.push(`${secoesAdicionadas} seção(ões) criada(s)`);
+      if (secoesModificadas > 0) detalhes.push(`${secoesModificadas} seção(ões) editada(s)`);
+      if (imagensAdicionadas > 0) detalhes.push(`${imagensAdicionadas} imagem(ns) adicionada(s)`);
+      if (imagensRemovidas > 0) detalhes.push(`${imagensRemovidas} imagem(ns) removida(s)`);
+      
+      if (detalhes.length > 0) {
+        mensagem = `Sucesso! ${detalhes.join(', ')}.`;
+      }
+      
+      exitEditModeAfterSave();
+      showNotification('success', mensagem);
+      
     } catch (error) {
       console.error('Erro ao salvar seções:', error);
-      alert('Erro ao salvar seções: ' + error.message);
+      showNotification('error', 'Erro ao salvar alterações: ' + error.message);
     } finally {
       setSaving(false);
-    }
-  };
-
-  const descartarAlteracoes = () => {
-    // Verificar se há imagens temporárias que serão perdidas
-    const totalImagensTemporarias = Object.values(imagensTemporarias).reduce((total, imagens) => total + imagens.length, 0);
-    const totalImagensEditadas = Object.keys(imagensEditadas).length;
-    const totalImagensMarcadasParaRemocao = Object.values(imagensMarcadasParaRemocao).reduce((total, imagens) => total + imagens.length, 0);
-    
-    if (totalImagensTemporarias > 0 || totalImagensEditadas > 0 || totalImagensMarcadasParaRemocao > 0) {
-      let confirmMessage = 'Atenção: ';
-      if (totalImagensTemporarias > 0) {
-        confirmMessage += `Você tem ${totalImagensTemporarias} imagem(ns) temporária(s) que será(ão) perdida(s). `;
-      }
-      if (totalImagensMarcadasParaRemocao > 0) {
-        confirmMessage += `${totalImagensMarcadasParaRemocao} imagem(ns) marcada(s) para remoção será(ão) restaurada(s). `;
-      }
-      if (totalImagensEditadas > 0) {
-        confirmMessage += `${totalImagensEditadas} descrição(ões) de imagem foram alteradas e serão perdidas. `;
-      }
-      confirmMessage += 'Tem certeza que deseja descartar todas as alterações?';
-      
-      if (window.confirm(confirmMessage)) {
-        setShowConfirmDiscardModal(true);
-      }
-    } else {
-      setShowConfirmDiscardModal(true);
     }
   };
 
@@ -1399,14 +1523,18 @@ const Secoes = () => {
     try {
       await deleteSecao(secaoId);
       await fetchSecoes();
+      
       // Limpar imagens da seção deletada
       setSecaoImages(prev => {
         const newImages = { ...prev };
         delete newImages[secaoId];
         return newImages;
       });
+      
+      showNotification('success', 'Seção removida com sucesso!');
     } catch (error) {
       console.error('Erro ao deletar seção:', error);
+      showNotification('error', 'Erro ao remover seção. Tente novamente.');
       throw error;
     }
   };
@@ -1418,22 +1546,53 @@ const Secoes = () => {
 
   return (
     <div className="secoes-container">
-      {/* Header com botão voltar */}
-      <div className="secoes-header">
-        <button className="voltar-button" onClick={handleVoltar}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M19 12H5"></path>
-            <path d="M12 19l-7-7 7-7"></path>
-          </svg>
-          Voltar
-        </button>
-        
-        <div className="secoes-title">
-          {capitulo && <h1>{capitulo.nome}</h1>}
+      {/* Notificação */}
+      {notification.show && (
+        <div className={`notification ${notification.type}`}>
+          <div className="notification-content">
+            {notification.type === 'success' && (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 12l2 2 4-4"></path>
+                <circle cx="12" cy="12" r="10"></circle>
+              </svg>
+            )}
+            {notification.type === 'error' && (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+            )}
+            <span>{notification.message}</span>
+            <button 
+              className="notification-close"
+              onClick={() => setNotification({ show: false, type: '', message: '' })}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Loading state */}
+        {/* Header com botão voltar */}
+        <div className="secoes-header">
+          <div className="header-left">
+            <button className="voltar-button" onClick={handleVoltar}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M19 12H5"></path>
+                <path d="M12 19l-7-7 7-7"></path>
+              </svg>
+              Voltar
+            </button>
+            
+            <div className="secoes-title">
+              {capitulo && <h1>{capitulo.nome}</h1>}
+            </div>
+          </div>
+        </div>      {/* Loading state */}
       {loading && (
         <div className="loading-message">
           <p>Carregando seções...</p>
@@ -1466,263 +1625,279 @@ const Secoes = () => {
 
       {/* Lista de seções */}
       {!loading && !error && (
-        <div className="secoes-list">
-          {canManageSecoes ? (
-            <>
-              {/* Seções existentes para admin */}
-              {secoesFiltradas.map((secao, index) => (
-                <div 
-                  key={secao.id} 
-                  className={`secao-card ${expandedSecao === secao.id ? 'expanded' : ''} ${secoesEditadas.find(s => s.id === secao.id) ? 'secao-editada' : ''} ${reordenandoSecoes ? 'reordering' : ''}`}
-                >
-                  <div className="secao-header">
-                    <div className="secao-info">
-                      <div className="secao-title-row">
-                        <div className="secao-reorder-controls">
-                          <div className="order-buttons">
-                            <button
-                              type="button"
-                              onClick={() => moverSecao(index, 'up')}
-                              className="order-button order-up"
-                              title="Mover para cima"
-                              disabled={reordenandoSecoes}
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="18,15 12,9 6,15"></polyline>
-                              </svg>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => moverSecao(index, 'down')}
-                              className="order-button order-down"
-                              title="Mover para baixo"
-                              disabled={reordenandoSecoes}
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="6,9 12,15 18,9"></polyline>
-                              </svg>
-                            </button>
-                          </div>
+        <>
+          <div className="secoes-list">
+            {canManageSecoes && editMode ? (
+              /* Modo de edição para admins */
+              <>
+                {/* Seções existentes para admin */}
+                {secoesFiltradas.map((secao, index) => (
+                  <div 
+                    key={secao.id} 
+                    className={`secao-card ${expandedSecao === secao.id ? 'expanded' : ''} ${secoesEditadas.find(s => s.id === secao.id) ? 'secao-editada' : ''} ${reordenandoSecoes ? 'reordering' : ''} ${dragOverIndex === index ? 'drag-over' : ''}`}
+                    draggable={!reordenandoSecoes}
+                    onDragStart={(e) => handleDragStart(e, secao, index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, index)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <div className="secao-header-controls">
+                      {/* Controles de reordenação mais intuitivos */}
+                      <div className="secao-reorder-controls">
+                        <div className="drag-handle" title="Arrastar para reordenar">
+                          ⋮⋮
                         </div>
-                        <div className="form-group titulo-group">
-                          <label>Título</label>
+                        <button
+                          className="reorder-button"
+                          title="Mover seção para cima"
+                          onClick={() => moverSecao(index, 'up')}
+                          disabled={reordenandoSecoes}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          className="reorder-button"
+                          title="Mover seção para baixo"
+                          onClick={() => moverSecao(index, 'down')}
+                          disabled={reordenandoSecoes}
+                        >
+                          ↓
+                        </button>
+                      </div>
+
+                      {/* Conteúdo principal da seção */}
+                      <div className="secao-main-content">
+                        <div className="secao-field optional">
+                          <label>Título da seção</label>
                           <input
                             type="text"
                             value={getSecaoValue(secao.id, 'titulo') || ''}
                             onChange={(e) => handleUpdateSecao(secao.id, 'titulo', e.target.value)}
+                            placeholder="Ex: Introdução, Conceitos básicos..."
                             className="secao-titulo-input"
-                            onClick={(e) => e.stopPropagation()}
-                            placeholder="Título da seção"
                           />
-                          {secoesEditadas.find(s => s.id === secao.id) && (
-                            <span className="edit-indicator" title="Alterações não salvas">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                              </svg>
-                            </span>
-                          )}
                         </div>
-                      </div>
-                      <div className="form-group resumo-group">
-                        <label>Resumo</label>
-                        <textarea
-                          value={getSecaoValue(secao.id, 'resumo') || ''}
-                          onChange={(e) => handleUpdateSecao(secao.id, 'resumo', e.target.value)}
-                          className="secao-resumo-input"
-                          onClick={(e) => e.stopPropagation()}
-                          placeholder="Digite um resumo da seção"
-                          rows="3"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="secao-actions">
-                      <button 
-                        className="delete-secao-button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteSecaoModal(secao);
-                        }}
-                        title="Excluir seção"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <polyline points="3,6 5,6 21,6"></polyline>
-                          <path d="M19,6V20a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6M8,6V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6"></path>
-                          <line x1="10" y1="11" x2="10" y2="17"></line>
-                          <line x1="14" y1="11" x2="14" y2="17"></line>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                  {renderSecaoContentAdmin(secao)}
-                </div>
-              ))}
 
-              {/* Novas seções (edição inline para admins) */}
-              {novasSecoes.map((secao) => (
-                <div key={secao.id} className="secao-card secao-card-nova">
-                  <div className="secao-header">
-                    <div className="secao-info">
-                      <div className="form-group titulo-group">
-                        <label>Título</label>
-                        <input
-                          type="text"
-                          value={secao.titulo || ''}
-                          onChange={(e) => atualizarNovaSecao(secao.id, 'titulo', e.target.value)}
-                          className="secao-titulo-input-nova"
-                          placeholder="Título da nova seção (opcional)"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Resumo</label>
-                        <textarea
-                          value={secao.resumo || ''}
-                          onChange={(e) => atualizarNovaSecao(secao.id, 'resumo', e.target.value)}
-                          placeholder="Digite um resumo da seção"
-                          rows="3"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Conteúdo</label>
-                        <textarea
-                          value={secao.original || ''}
-                          onChange={(e) => atualizarNovaSecao(secao.id, 'original', e.target.value)}
-                          placeholder="Digite o conteúdo da seção"
-                          rows="5"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Link 3D</label>
-                        <div className="link3d-container">
-                          <input
-                            type="url"
-                            value={secao.link3d || ''}
-                            onChange={(e) => atualizarNovaSecao(secao.id, 'link3d', e.target.value)}
-                            placeholder="https://..."
-                            className="secao-link3d-input"
+                        <div className="secao-field optional">
+                          <label>Resumo</label>
+                          <textarea
+                            value={getSecaoValue(secao.id, 'resumo') || ''}
+                            onChange={(e) => handleUpdateSecao(secao.id, 'resumo', e.target.value)}
+                            placeholder="Gerado por IA (sera implementado em breve)"
+                            className="secao-resumo-input"
+                            rows="2"
                           />
-                          <div className="link3d-order">
-                            <label>Ordem do Link 3D:</label>
-                            <input
-                              type="number"
-                              value={secao.ordem3d || ''}
-                              onChange={(e) => atualizarNovaSecao(secao.id, 'ordem3d', parseInt(e.target.value) || null)}
-                              className="order-input"
-                              placeholder="Ex: 3"
-                              min="2"
-                            />
-                            <small>Ordem de exibição (2 = após conteúdo, 3+ = entre/após imagens)</small>
-                          </div>
                         </div>
-                      </div>
-                      
-                      {/* Seção de imagens temporárias */}
-                      <div className="form-group">
-                        <div className="secao-images-header">
-                          <label>
-                            Imagens 
-                            {imagensTemporarias[secao.id] && imagensTemporarias[secao.id].length > 0 && (
-                              <span className="images-count">({imagensTemporarias[secao.id].length})</span>
+
+                        {/* Controles de expansão */}
+                        <div className="secao-expand-controls">
+                          <button
+                            className="expand-toggle-button"
+                            onClick={() => handleExpandSecao(secao.id)}
+                          >
+                            {expandedSecao === secao.id ? (
+                              <>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M18 15l-6-6-6 6"></path>
+                                </svg>
+                                Recolher conteúdo
+                              </>
+                            ) : (
+                              <>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M6 9l6 6 6-6"></path>
+                                </svg>
+                                Expandir conteúdo
+                              </>
                             )}
-                          </label>
+                          </button>
                         </div>
-                        {renderImagensTemporarias(secao.id)}
                       </div>
-                      
-                      <div className="secao-actions-editing">
-                        <button 
-                          className="btn-danger"
-                          onClick={() => removerNovaSecao(secao.id)}
+
+                      {/* Controles de ação da seção */}
+                      <div className="secao-actions">
+                        <button
+                          className="action-button delete"
+                          onClick={() => handleDeleteSecaoModal(secao)}
+                          title="Remover seção"
                         >
-                          Remover
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                          </svg>
                         </button>
                       </div>
                     </div>
-                  </div>
-                </div>
-              ))}
 
-              {/* Botão para adicionar nova seção */}
-              <div className="add-secao-container">
+                    {/* Conteúdo expandido da seção */}
+                    {expandedSecao === secao.id && (
+                      <div className="secao-content">
+                        {renderSecaoContentAdmin(secao)}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {/* Novas seções para admin */}
+                {novasSecoes.map((novaSecao, index) => (
+                  <div key={novaSecao.id} className="secao-card expanded">
+                    <div className="secao-header-controls">
+                      {/* Espaçamento para alinhamento com seções existentes */}
+                      <div className="secao-reorder-controls" style={{ opacity: 0.3 }}>
+                        <button className="reorder-button" disabled>↑</button>
+                        <button className="reorder-button" disabled>↓</button>
+                      </div>
+
+                      <div className="secao-main-content">
+                        <div className="secao-field optional">
+                          <label>Título da seção</label>
+                          <input
+                            type="text"
+                            value={novaSecao.titulo || ''}
+                            onChange={(e) => atualizarNovaSecao(novaSecao.id, 'titulo', e.target.value)}
+                            placeholder="Ex: Introdução, Conceitos básicos..."
+                            className="secao-titulo-input"
+                          />
+                        </div>
+
+                        <div className="secao-field optional">
+                          <label>Resumo</label>
+                          <textarea
+                            value={novaSecao.resumo || ''}
+                            onChange={(e) => atualizarNovaSecao(novaSecao.id, 'resumo', e.target.value)}
+                            placeholder="Gerado por IA (sera implementado em breve)"
+                            className="secao-resumo-input"
+                            rows="2"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="secao-actions">
+                        <button
+                          className="action-button delete"
+                          onClick={() => removerNovaSecao(novaSecao.id)}
+                          title="Remover nova seção"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="secao-content">
+                      <div className="secao-field">
+                        <label>Conteúdo</label>
+                        <textarea
+                          value={novaSecao.original || ''}
+                          onChange={(e) => atualizarNovaSecao(novaSecao.id, 'original', e.target.value)}
+                          className="secao-content-input"
+                          rows="6"
+                          placeholder="Digite o conteúdo da seção"
+                        />
+                      </div>
+
+                      {/* Campo Link 3D com melhor organização */}
+                      <div className="secao-field optional">
+                        <label>Link 3D</label>
+                        <input
+                          type="url"
+                          value={novaSecao.link3d || ''}
+                          onChange={(e) => atualizarNovaSecao(novaSecao.id, 'link3d', e.target.value)}
+                          className="secao-link3d-input"
+                          placeholder="https://exemplo.com/modelo-3d"
+                        />
+                        {novaSecao.link3d && (
+                          <div className="link3d-order">
+                            <label>Posição do Link 3D:</label>
+                            <select
+                              value={novaSecao.ordem3d || 1}
+                              onChange={(e) => atualizarNovaSecao(novaSecao.id, 'ordem3d', parseInt(e.target.value))}
+                              className="order-select"
+                            >
+                              <option value={1}>Após o conteúdo</option>
+                              <option value={99}>No final (após todas as imagens)</option>
+                            </select>
+                            <small>Define onde o link 3D aparecerá no conteúdo</small>
+                          </div>
+                        )}
+                      </div>
+
+                      {renderImagensTemporarias(novaSecao.id)}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Botão para adicionar nova seção - só mostra se já existem seções */}
+                {secoesFiltradas.length > 0 && (
+                  <div className="add-secao-container">
+                    <button 
+                      className="add-secao-button"
+                      onClick={adicionarNovaSecao}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                      Adicionar conteúdo
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Modo visualização para usuários - voltando ao design original */
+              <div className="capitulo-content-continuo">
+                {secoesFiltradas.map((secao) => (
+                  <div key={secao.id} className="secao-content-item">
+                    {/* Renderizar conteúdo da seção com ordem correta */}
+                    {renderSecaoContentUser(secao)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Controles de edição fixos na parte inferior */}
+          {canManageSecoes && editMode && hasUnsavedChanges() && (
+            <div className="edit-controls-bottom">
+              <div className="edit-actions-inline">
                 <button 
-                  className="add-secao-button-styled"
-                  onClick={adicionarNovaSecao}
+                  className="btn-outline btn-sm"
+                  onClick={() => setShowConfirmDiscardModal(true)}
+                  disabled={saving}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  adicionar conteúdo
+                  Descartar
+                </button>
+                <button 
+                  className="btn-primary btn-sm"
+                  onClick={salvarSecoes}
+                  disabled={saving}
+                >
+                  {saving ? 'Salvando...' : 'Salvar'}
                 </button>
               </div>
-
-              {/* Botões de ação - apenas descartar quando há alterações */}
-              {(secoesEditadas.length > 0 || novasSecoes.length > 0 || Object.keys(imagensTemporarias).length > 0 || Object.keys(imagensEditadas).length > 0 || Object.keys(imagensMarcadasParaRemocao).length > 0) && (
-                <div className="save-actions-container">
-                  <div className="save-actions">
-                    <button 
-                      className="btn-secondary"
-                      onClick={descartarAlteracoes}
-                      disabled={saving}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M3 6h18"></path>
-                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                      </svg>
-                      Descartar alterações
-                    </button>
-                    <button 
-                      className="btn-outline"
-                      onClick={salvarComoRascunho}
-                      disabled={saving}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                        <polyline points="17,21 17,13 7,13 7,21"></polyline>
-                        <polyline points="7,3 7,8 15,8"></polyline>
-                      </svg>
-                      Salvar como Rascunho
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            /* Vista para usuários - conteúdo contínuo sem separação */
-            <div className="capitulo-content-continuo">
-              {secoesFiltradas.map((secao) => (
-                <div key={secao.id} className="secao-content-item">
-                  {/* Renderizar conteúdo da seção com ordem correta */}
-                  {renderSecaoContentUser(secao)}
-                </div>
-              ))}
             </div>
           )}
-        </div>
+
+          {/* Botão fixo para voltar ao topo - posição dinâmica */}
+          <button 
+            className={`back-to-top-button ${showBackToTop ? 'visible' : ''} ${
+              canManageSecoes && editMode && hasUnsavedChanges() ? 'above-edit-controls' : ''
+            }`}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            title="Voltar ao topo"
+          >
+            ↑
+          </button>
+        </>
       )}
 
       {/* Mensagem quando não há seções */}
-      {!loading && !error && secoes.length === 0 && (
-        <div className="no-results">
-          <p>
-            {canManageSecoes 
-              ? "Nenhuma seção cadastrada. Clique no botão 'Adicionar Seção' para começar!"
-              : "Este capítulo ainda não possui conteúdo."
-            }
-          </p>
-        </div>
-      )}
-
-      {/* Mensagem quando não há resultados na pesquisa */}
-      {!loading && !error && secoes.length > 0 && secoesFiltradas.length === 0 && searchTerm && (
-        <div className="no-results">
-          <p>Nenhum conteúdo encontrado para "{searchTerm}"</p>
-        </div>
-      )}
-
-      {/* Mensagem quando não há seções no capítulo */}
-      {!loading && !error && secoes.length === 0 && (
+      {!loading && !error && secoes.length === 0 && novasSecoes.length === 0 && (
         <div className="empty-state">
           <div className="empty-icon">
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -1738,16 +1913,26 @@ const Secoes = () => {
           {canManageSecoes && (
             <button 
               className="btn-primary"
-              onClick={adicionarNovaSecao}
+              onClick={() => {
+                setEditMode(true);
+                adicionarNovaSecao();
+              }}
               style={{ marginTop: '16px' }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
-              Criar primeira seção
+              Criar primeiro conteúdo
             </button>
           )}
+        </div>
+      )}
+
+      {/* Mensagem quando não há resultados na pesquisa */}
+      {!loading && !error && secoes.length > 0 && secoesFiltradas.length === 0 && searchTerm && (
+        <div className="no-results">
+          <p>Nenhum conteúdo encontrado para "{searchTerm}"</p>
         </div>
       )}
 
@@ -1775,28 +1960,6 @@ const Secoes = () => {
         confirmText="Descartar"
         cancelText="Cancelar"
       />
-
-      {/* Botão fixo de salvar */}
-      {(secoesEditadas.length > 0 || novasSecoes.length > 0 || Object.keys(imagensTemporarias).length > 0 || Object.keys(imagensEditadas).length > 0 || Object.keys(imagensMarcadasParaRemocao).length > 0) && (
-        <button 
-          className={`save-button-fixed ${saving ? 'saving' : ''}`}
-          onClick={salvarSecoes}
-          disabled={saving}
-          title={saving ? 'Salvando alterações...' : 'Salvar todas as alterações'}
-        >
-          {saving ? (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 12a9 9 0 11-6.219-8.56"></path>
-            </svg>
-          ) : (
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-              <polyline points="17,21 17,13 7,13 7,21"></polyline>
-              <polyline points="7,3 7,8 15,8"></polyline>
-            </svg>
-          )}
-        </button>
-      )}
     </div>
   );
 };

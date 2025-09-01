@@ -376,7 +376,7 @@ body {
 .modal-form .form-group input:focus,
 .modal-form .form-group textarea:focus {
   outline: none;
-  border-color: #059669;
+  border-color: #234434;
   box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
 }
 
@@ -486,7 +486,7 @@ body {
 }
 
 .image-upload-section:hover {
-  border-color: #059669;
+  border-color: #234434;
   background: #f0fdf4;
 }
 
@@ -605,7 +605,7 @@ body {
   padding: 12px;
   background: #f8fafc;
   border-radius: 6px;
-  border-left: 3px solid #059669;
+  border-left: 3px solid #234434;
 }
 
 .form-actions {
@@ -865,12 +865,12 @@ body.dark-mode .error-details {
 
 /* Dark mode */
 .dark-mode {
-  background-color: #2d4a3e;
+  background-color: #1a1a1a;
   color: #f9fafb;
 }
 
 .dark-mode .header {
-  background-color: #2d5742; /* Verde mais escuro e suave */
+  background-color: #2d5742; /* Verde original do dark mode */
 }
 
 .dark-mode .logo-text {
@@ -913,8 +913,8 @@ body.dark-mode .error-details {
 }
 
 .dark-mode .edit-button {
-  background: #2d5742;
-  color: white; /* Manter texto branco mesmo no modo dark */
+  background: #2d5742; /* Verde original do dark mode */
+  color: white;
 }
 
 .dark-mode .edit-button:hover {
@@ -976,7 +976,7 @@ body.dark-mode .error-details {
 }
 
 .dark-mode .save-button {
-  background: #2d5742;
+  background: #2d5742; /* Verde original do dark mode */
 }
 
 .dark-mode .save-button:hover {
@@ -1071,7 +1071,7 @@ body.dark-mode .error-details {
 
 .dark-mode .upload-button {
   background: #2d5742;
-  box-shadow: 0 2px 4px rgba(81, 146, 113, 0.3);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
 }
 
 .dark-mode .upload-button:hover {
@@ -1166,14 +1166,61 @@ body.dark-mode .error-details {
 }
 
 .dark-mode .btn-secondary {
-  background: #374151;
+  background: #2d2d2d;
   color: white;
-  border-color: #4b5563;
+  border-color: #555;
 }
 
 .dark-mode .btn-secondary:hover {
   background: #4b5563;
   border-color: #6b7280;
+}
+
+.dark-mode .btn-danger {
+  background: #2d5742; /* Verde escuro do modo dark */
+  color: white;
+  border-color: #2d5742;
+}
+
+.dark-mode .btn-danger:hover {
+  background: #234434;
+  border-color: #234434;
+}
+
+/* Edit controls bottom - Dark mode */
+.dark-mode .edit-controls-bottom {
+  background: #2d5742; /* Verde do modo dark */
+  box-shadow: 0 4px 12px rgba(45, 87, 66, 0.3);
+}
+
+.dark-mode .edit-controls-bottom .btn-outline {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.dark-mode .edit-controls-bottom .btn-outline:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark-mode .edit-controls-bottom .btn-outline:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.dark-mode .edit-controls-bottom .btn-primary {
+  background: white;
+  color: #2d5742; /* Verde do modo dark */
+}
+
+.dark-mode .edit-controls-bottom .btn-primary:hover:not(:disabled) {
+  background: #f9fafb;
+}
+
+.dark-mode .edit-controls-bottom .btn-primary:disabled {
+  background: rgba(255, 255, 255, 0.3);
+  color: rgba(45, 87, 66, 0.4);
 }
 
 .dark-mode .cancel-button {
@@ -1520,7 +1567,7 @@ body.dark-mode .error-details {
 }
 
 .dark-mode .voltar-button {
-  background: #2d5742;
+  background: #2d5742; /* Verde original do dark mode */
   color: white;
 }
 
@@ -1934,15 +1981,15 @@ body.dark-mode .auth-page.register-page {
 }
 
 body.dark-mode .auth-navbar {
-  background-color: #2d5742;
+  background-color: #2d5742; /* Verde original do dark mode */
 }
 
 body.dark-mode .auth-card {
-  background-color: #FF9A5A;
+  background-color: #FF9A5A; /* Laranja original do dark mode */
 }
 
 body.dark-mode .auth-card.register-card {
-  background-color: #2d5742;
+  background-color: #2a2a2a; /* Cinza mais neutro */
   border: 1px solid #333;
 }
 
@@ -1994,7 +2041,7 @@ body.dark-mode .checkbox-input:checked {
 }
 
 body.dark-mode .checkbox-input:checked::after {
-  color: #2d5742;
+  color: #2d5742; /* Verde original do dark mode */
 }
 
 body.dark-mode .checkbox-input:hover {
@@ -2007,7 +2054,7 @@ body.dark-mode .checkbox-input:focus {
 
 /* Dark mode button styles */
 body.dark-mode .auth-button.primary {
-  background-color: #2d5742; /* Verde do navbar dark mode */
+  background-color: #2d5742; /* Verde original do dark mode */
   color: white;
 }
 
@@ -2156,9 +2203,370 @@ body.dark-mode .auth-copyright {
 .secoes-container {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 20px;
+}
+
+/* Notificações */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  min-width: 300px;
+  max-width: 500px;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  animation: slideInNotification 0.3s ease-out;
+}
+
+@keyframes slideInNotification {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.notification.success {
+  background: #dcfce7;
+  color: #166534;
+  border-left: 4px solid #16a34a;
+}
+
+.notification.error {
+  background: #fef2f2;
+  color: #dc2626;
+  border-left: 4px solid #ef4444;
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.notification-content svg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.notification-content span {
+  flex: 1;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.notification-close:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Header das seções melhorado */
+.secoes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-right: 50px;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+}
+
+.secoes-title {
+  flex: 1;
+  text-align: center; /* Centralizado compensando o botão de voltar */
+  margin-right: 80px; /* Mais espaço para mover mais para a esquerda */
+}
+
+.secoes-title h1 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1.75rem; /* Um pouquinho maior */
+  font-weight: 600; /* Menos negrito que 700 */
+  width: 100%;
+}
+
+/* Removido - edit-mode-indicator agora é edit-controls-bottom */
+
+/* Removido - estilos movidos para edit-controls-bottom */
+
+/* Controles de edição fixos na parte inferior da tela - direita */
+.edit-controls-bottom {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  z-index: 1000;
+  display: flex;
+  gap: 12px;
+  padding: 12px 20px;
+  background: #519271;
+  color: white;
+  border-radius: 8px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(81, 146, 113, 0.3);
+}
+
+.edit-controls-bottom .edit-actions-inline {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-controls-bottom .btn-outline {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.edit-controls-bottom .btn-outline:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.edit-controls-bottom .btn-outline:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: not-allowed;
+}
+
+.edit-controls-bottom .btn-primary {
+  background: white;
+  color: #519271;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.edit-controls-bottom .btn-primary:hover:not(:disabled) {
+  background: #f9fafb;
+}
+
+.edit-controls-bottom .btn-primary:disabled {
+  background: rgba(255, 255, 255, 0.3);
+  color: rgba(81, 146, 113, 0.4);
+  cursor: not-allowed;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.edit-mode-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Melhorias no controle de ordem do link 3D */
+.link3d-container {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 140px);
+  gap: 12px;
+}
+
+.link3d-order {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.link3d-order label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.order-select {
+  padding: 8px 8px 8px 12px; /* Padding-right maior para a setinha */
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.order-select:focus {
+  outline: none;
+  border-color: #234434;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+}
+
+.link3d-order small {
+  color: #6b7280;
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* Controles de reordenação de seções mais intuitivos */
+.secao-reorder-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-right: 16px;
+  padding: 8px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.reorder-button {
+  background: #519271;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 16px;
+  font-weight: bold;
+  min-width: 40px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reorder-button:hover:not(:disabled) {
+  background: #3d6d54;
+  transform: scale(1.05);
+}
+
+.reorder-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Layout dos controles de seção no modo edição */
+.secao-header-controls {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+}
+
+.secao-main-content {
+  flex: 1;
+}
+
+.secao-field {
+  margin-bottom: 16px;
+}
+
+.secao-field.optional label {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.secao-field.optional label::after {
+  content: " (opcional)";
+  color: #9ca3af;
+  font-size: 0.85em;
+}
+
+/* Indicador de alterações não salvas - fixo no canto inferior direito */
+.unsaved-changes-indicator {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  background: #f59e0b;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  z-index: 1000;
+  animation: pulse 2s infinite;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.unsaved-changes-indicator:hover {
+  background: #d97706;
+  transform: translateY(-2px);
+}
+
+/* Botão fixo para voltar ao topo */
+.back-to-top-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #519271;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  cursor: pointer;
+  font-size: 20px;
+  font-weight: bold;
+  box-shadow: 0 4px 12px rgba(81, 146, 113, 0.3);
+  z-index: 1000;
+  transition: all 0.3s;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(20px);
+}
+
+.back-to-top-button.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.back-to-top-button:hover {
+  background: #3d6d54;
+  transform: translateY(-2px) scale(1.1);
+}
+
+/* Seções - Design original limpo */
+.secoes-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
 }
 
 .secoes-header {
@@ -2166,69 +2574,8 @@ body.dark-mode .auth-copyright {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 30px;
-  margin-right: 100px;
   padding-bottom: 20px;
   border-bottom: 2px solid #e5e7eb;
-}
-
-.add-secao-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: #519271;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.add-secao-button:hover {
-  background: #3d6d54;
-  transform: translateY(-1px);
-}
-
-.secoes-title {
-  text-align: center;
-  flex: 1;
-}
-
-.secoes-title h1 {
-  font-size: 28px;
-  font-weight: 600;
-  color: #1d1d1d;
-  margin: 0;
-}
-
-.secoes-title h2 {
-  font-size: 20px;
-  font-weight: 400;
-  color: #666;
-  margin: 5px 0 0 0;
-}
-
-.add-secao-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #FF914D;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 16px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-
-.add-secao-button:hover {
-  background: #E67E22;
-  transform: translateY(-1px);
 }
 
 .secoes-list {
@@ -2244,7 +2591,6 @@ body.dark-mode .auth-copyright {
   overflow: hidden;
   transition: all 0.2s ease;
   border: 1px solid #e5e7eb;
-  margin-bottom: 16px;
   position: relative;
 }
 
@@ -2253,71 +2599,35 @@ body.dark-mode .auth-copyright {
   transform: translateY(-1px);
 }
 
-.secao-card:hover .delete-secao-button {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.secao-card:not(.secao-card-nova) {
-  cursor: pointer;
-}
-
-.secao-card-nova {
-  border: 2px dashed #519271;
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 16px;
-  transition: all 0.2s ease;
-  cursor: default;
-}
-
-.secao-card-nova:hover {
-  border-color: #3d6d54;
-  background: #f0f9ff;
-  transform: translateY(-1px);
-}
-
-.secao-card-nova .secao-info {
-  width: 100%;
-}
-
-.secao-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 20px;
-  background: #fafafa;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.secao-info {
-  flex: 1;
-}
-
-.secao-card-nova .secao-titulo-input {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 8px 0;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 12px 16px;
+.secao-card.nova-secao {
+  border: 2px solid #cbd5e1;
   background: white;
-  transition: all 0.2s ease;
-  font-family: inherit;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.secao-titulo-input:focus {
-  outline: none;
-  border-color: #519271;
-  box-shadow: 0 0 0 3px rgba(81, 146, 113, 0.1);
+.add-secao-container {
+  text-align: center;
+  padding: 20px;
 }
 
-.secao-titulo-input::placeholder {
-  color: #9ca3af;
-  font-weight: 400;
+.add-secao-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #519271;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  margin: 0 auto;
+}
+
+.add-secao-button:hover {
+  background: #3d6d54;
+  transform: translateY(-1px);
 }
 
 .secao-resumo {
@@ -2941,7 +3251,72 @@ body.dark-mode .auth-copyright {
   margin-top: 12px;
 }
 
-/* Dark mode para seções */
+/* Dark mode para notificações */
+.dark-mode .notification.success {
+  background: #2d5742;
+  color: white;
+  border-left-color: #16a34a;
+}
+
+.dark-mode .notification.error {
+  background: #7f1d1d;
+  color: white;
+  border-left-color: #ef4444;
+}
+
+/* Dark mode para header das seções */
+.dark-mode .secoes-header {
+  border-bottom-color: #374151;
+}
+
+.dark-mode .edit-mode-indicator {
+  background: #064e3b;
+  border-color: #234434;
+  color: #2d5742;
+}
+
+.dark-mode .order-select {
+  background: #2D2D2D;
+  border-color: #555;
+  color: #f9fafb;
+}
+
+.dark-mode .order-select:focus {
+  border-color: #2d5742; /* Verde do modo dark */
+  box-shadow: 0 0 0 3px rgba(45, 87, 66, 0.3);
+}
+
+.dark-mode .link3d-order label {
+  color: #f3f4f6;
+}
+
+.dark-mode .link3d-order small {
+  color: #9ca3af;
+}
+
+.dark-mode .order-button {
+  background: #374151;
+  border-color: #4b5563;
+  color: #9ca3af;
+}
+
+.dark-mode .order-button:hover:not(:disabled) {
+  background: #4b5563;
+  color: #f3f4f6;
+}
+
+.dark-mode .secao-card.edit-mode {
+  border-color: #234434;
+  background: #064e3b;
+}
+
+.dark-mode .secao-card.edit-mode .secao-header {
+  background: #065f46;
+}
+
+.dark-mode .edit-indicator {
+  color: #fbbf24;
+}
 .dark-mode .secoes-title h1 {
   color: white;
 }
@@ -2965,7 +3340,7 @@ body.dark-mode .auth-copyright {
 }
 
 .dark-mode .secao-header {
-  background: #3a3a3a;
+  background: #1a1a1a; /* Fundo preto igual ao expandido */
   border-bottom-color: #404040;
 }
 
@@ -2998,9 +3373,17 @@ body.dark-mode .auth-copyright {
 .dark-mode .secao-resumo-input,
 .dark-mode .secao-content-input,
 .dark-mode .secao-link3d-input {
-  background: #3a3a3a;
+  background: #2d2d2d; /* Fundo conforme solicitado */
   border-color: #555;
   color: white;
+}
+
+.dark-mode .secao-titulo-input:focus,
+.dark-mode .secao-resumo-input:focus,
+.dark-mode .secao-content-input:focus,
+.dark-mode .secao-link3d-input:focus {
+  border-color: #2d5742; /* Verde do modo dark ao focar */
+  box-shadow: 0 0 0 3px rgba(45, 87, 66, 0.3);
 }
 
 .dark-mode .secao-link3d h4 {
@@ -3008,7 +3391,7 @@ body.dark-mode .auth-copyright {
 }
 
 .dark-mode .secao-link3d a {
-  color: #2d5742;
+  color: #2d5742; /* Verde original do dark mode */
 }
 
 .dark-mode .no-images {
@@ -3767,7 +4150,7 @@ body:not(.dark-mode) .secao-card-nova {
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #059669;
+  border-color: #234434;
   box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
 }
 
@@ -3872,6 +4255,11 @@ body:not(.dark-mode) .secao-card-nova {
   .modal-content {
     max-width: 100%;
     max-height: 95vh;
+  }
+  
+  .confirm-modal {
+    max-height: 60vh; /* Altura menor no celular */
+    height: auto;
   }
   
   .modal-header,
@@ -4109,8 +4497,14 @@ body:not(.dark-mode) .secao-card-nova {
 }
 
 .dark-mode .secao-titulo-continuo {
-  color: #f9fafb;
+  color: white; /* Branco em negrito para melhor visualização */
   border-bottom-color: #404040;
+  font-weight: 700;
+}
+
+.dark-mode .secao-titulo-inline {
+  color: white !important; /* Título das seções branco na visualização */
+  font-weight: 700;
 }
 
 .dark-mode .secao-resumo-continuo p {
@@ -4296,4 +4690,390 @@ body:not(.dark-mode) .secao-card-nova {
   .capitulos-header{
      margin-right: 0;
   }
+}
+
+/* === MELHORIAS PARA AS SEÇÕES === */
+
+/* Botão fixo para voltar ao topo - melhorado */
+.back-to-top-button {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 56px;
+  height: 56px;
+  background: #FF914D;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: bold;
+  box-shadow: 0 4px 20px rgba(255, 145, 77, 0.3);
+  z-index: 1000;
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: translateY(20px) scale(0.8);
+}
+
+.back-to-top-button.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.back-to-top-button:hover {
+  background: #E67E22;
+  transform: translateY(-4px) scale(1.1);
+  box-shadow: 0 8px 25px rgba(255, 145, 77, 0.4);
+}
+
+.back-to-top-button:active {
+  transform: translateY(-2px) scale(1.05);
+}
+
+/* Posicionamento dinâmico do back-to-top */
+.back-to-top-button.above-edit-controls {
+  bottom: 100px; /* Acima dos controles de edição */
+  right: 30px;
+}
+
+/* Posição padrão quando não há controles */
+.back-to-top-button:not(.above-edit-controls) {
+  bottom: 30px;
+  right: 30px;
+}
+
+/* Indicador de alterações pendentes - melhorado */
+/* Remove o indicador de mudanças não salvas - será substituído por botões fixos */
+
+/* Controles de reordenação mais intuitivos */
+.secao-reorder-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 8px;
+  background: #f8fafc;
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  align-self: flex-start;
+  position: relative;
+}
+
+.drag-handle {
+  cursor: move;
+  color: #64748b;
+  font-size: 16px;
+  text-align: center;
+  padding: 4px;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.drag-handle:hover {
+  color: #374151;
+}
+
+.reorder-button {
+  background: #519271;
+  color: white;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.reorder-button:hover:not(:disabled) {
+  background: #3d6d54;
+  transform: translateY(-1px);
+}
+
+.reorder-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.reorder-button:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Estilos para drag and drop */
+.secao-card {
+  transition: all 0.3s ease;
+  cursor: move;
+}
+
+.secao-card.dragging {
+  opacity: 0.6;
+  transform: rotate(5deg) scale(0.95);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}
+
+.secao-card.drag-over {
+  border-color: #519271 !important;
+  background: rgba(81, 146, 113, 0.05) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(81, 146, 113, 0.2);
+}
+
+.secao-card.drag-over::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #519271;
+  border-radius: 2px;
+}
+
+/* Botão de expandir conteúdo - melhorado */
+.expand-toggle-button {
+  background: #519271;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  margin: 12px 0;
+}
+
+.expand-toggle-button:hover {
+  background: #3d6d54;
+  transform: translateY(-1px);
+}
+
+.expand-toggle-button:active {
+  transform: translateY(0);
+}
+
+.expand-toggle-button:active {
+  transform: translateY(0);
+}
+
+/* Melhorias nos campos de formulário */
+.secao-field {
+  margin-bottom: 16px;
+}
+
+.secao-field label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.secao-field.optional label::after {
+  content: ' (opcional)';
+  color: #6b7280;
+  font-weight: 400;
+  font-style: italic;
+  font-size: 12px;
+}
+
+.secao-field input,
+.secao-field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.secao-field input:focus,
+.secao-field textarea:focus {
+  border-color: #234434;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+  background: #fefefe;
+}
+
+.secao-field input::placeholder,
+.secao-field textarea::placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Botão de adicionar nova seção - design original */
+.add-secao-container {
+  margin: 24px 0;
+}
+
+.add-secao-button {
+  width: 100%;
+  background: transparent;
+  color: #FF914D;
+  border: 2px dashed #FF914D;
+  padding: 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.add-secao-button:hover {
+  background: rgba(255, 145, 77, 0.1);
+  border-color: #E67E22;
+  color: #E67E22;
+}
+
+.add-secao-button:active {
+  transform: scale(0.98);
+}
+
+/* Melhorias nos controles de ação */
+.action-button {
+  background: #f8fafc;
+  border: 2px solid #cbd5e1;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-button:hover {
+  background: #e2e8f0;
+  color: #374151;
+  transform: translateY(-1px);
+}
+
+.action-button.delete {
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.action-button.delete:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #f87171;
+}
+
+/* Header de seção melhorado */
+.secao-header-controls {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fafafa;
+}
+
+/* Conteúdo principal da seção */
+.secao-main-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Estilos para modo escuro */
+.dark-mode .back-to-top-button {
+  background: #FF9A5A; /* Laranja original do dark mode */
+  box-shadow: 0 4px 20px rgba(255, 154, 90, 0.4);
+}
+
+.dark-mode .back-to-top-button:hover {
+  background: #E67E22;
+  box-shadow: 0 8px 25px rgba(255, 154, 90, 0.5);
+}
+
+.dark-mode .drag-handle {
+  color: #9ca3af;
+}
+
+.dark-mode .drag-handle:hover {
+  color: #d1d5db;
+}
+
+.dark-mode .reorder-button {
+  background: #2d5742; /* Verde original do dark mode */
+  border: 1px solid #404040;
+}
+
+.dark-mode .reorder-button:hover:not(:disabled) {
+  background: #234434;
+}
+
+.dark-mode .secao-reorder-controls {
+  background: #1a1a1a; /* Fundo escuro para o container das setas */
+  border-color: #404040; /* Borda escura no modo dark */
+}
+
+.dark-mode .expand-toggle-button {
+  background: #2d5742; /* Verde original do dark mode */
+}
+
+.dark-mode .expand-toggle-button:hover {
+  background: #234434;
+}
+
+.dark-mode .secao-card.drag-over {
+  border-color: #234434 !important;
+  background: rgba(5, 150, 105, 0.1) !important;
+}
+
+.dark-mode .secao-field label {
+  color: #d1d5db;
+}
+
+.dark-mode .secao-field input,
+.dark-mode .secao-field textarea {
+  background: #2d2d2d;
+  border-color: #555;
+  color: #f9fafb;
+}
+
+.dark-mode .secao-field input:focus,
+.dark-mode .secao-field textarea:focus {
+  border-color: #234434;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
+}
+
+.dark-mode .secao-header-controls {
+  background: #1a1a1a; /* Fundo preto igual ao expandido */
+  border-color: #404040;
+}
+
+.dark-mode .secao-main-content {
+  background: transparent; /* Sem fundo específico para usar o do container pai */
+}
+
+.dark-mode .action-button {
+  background: #2d2d2d;
+  border-color: #555;
+  color: #9ca3af;
+}
+
+.dark-mode .action-button:hover {
+  background: #4b5563;
+  color: #d1d5db;
 }
