@@ -202,6 +202,14 @@ const Secoes = () => {
     return a.id - b.id;
   });
 
+  // Função para obter todas as seções ordenadas (existentes + novas)
+  const getTodasSecoesOrdenadas = () => {
+    const existentes = secoesFiltradas.map(s => ({ ...s, isNew: false }));
+    const novas = novasSecoes.map(s => ({ ...s, isNew: true }));
+    
+    return [...existentes, ...novas].sort((a, b) => a.ordem - b.ordem);
+  };
+
   const handleExpandSecao = (secaoId) => {
     if (expandedSecao === secaoId) {
       setExpandedSecao(null);
@@ -1134,61 +1142,22 @@ const Secoes = () => {
   };
 
   const moverSecao = (secaoIndex, direcao) => {
+    // Esta função agora é apenas um wrapper para compatibilidade
+    // Mas não deveria ser chamada com o novo sistema unificado
+    console.warn('moverSecao chamada - usando sistema legado');
     const totalSecoes = secoesFiltradas.length;
     let newIndex;
     
     if (direcao === 'up') {
-      // Se está na primeira posição, vai para a última (ordenação circular)
       newIndex = secaoIndex === 0 ? totalSecoes - 1 : secaoIndex - 1;
     } else {
-      // Se está na última posição, vai para a primeira (ordenação circular)
       newIndex = secaoIndex === totalSecoes - 1 ? 0 : secaoIndex + 1;
     }
     
-    reordenarSecoes(secaoIndex, newIndex);
-  };
-
-  // Funções para drag and drop
-  const handleDragStart = (e, secao, index) => {
-    setDraggedSecao({ secao, index });
-    e.dataTransfer.effectAllowed = 'move';
-    e.target.classList.add('dragging');
-  };
-
-  const handleDragOver = (e, index) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDragOverIndex(index);
-  };
-
-  const handleDragLeave = (e) => {
-    // Só remove o indicador se estivermos realmente saindo do elemento
-    if (!e.currentTarget.contains(e.relatedTarget)) {
-      setDragOverIndex(null);
+    // Usar reordenação segura
+    if (secoesFiltradas[secaoIndex] && secoesFiltradas[newIndex]) {
+      moverSecaoUnificada(secoesFiltradas[secaoIndex].id, false, direcao);
     }
-  };
-
-  const handleDrop = (e, dropIndex) => {
-    e.preventDefault();
-    
-    if (draggedSecao && draggedSecao.index !== dropIndex) {
-      reordenarSecoes(draggedSecao.index, dropIndex);
-    }
-    
-    setDraggedSecao(null);
-    setDragOverIndex(null);
-    
-    // Remover classe de arraste
-    const draggedElement = document.querySelector('.dragging');
-    if (draggedElement) {
-      draggedElement.classList.remove('dragging');
-    }
-  };
-
-  const handleDragEnd = (e) => {
-    setDraggedSecao(null);
-    setDragOverIndex(null);
-    e.target.classList.remove('dragging');
   };
 
   // Funções dos modais
@@ -1261,6 +1230,126 @@ const Secoes = () => {
       delete newMarcacoes[secaoId];
       return newMarcacoes;
     });
+  };
+
+  // Função unificada para mover qualquer seção (existente ou nova) - para setas
+  const moverSecaoUnificada = (secaoId, isNew, direcao) => {
+    // Criar lista unificada de todas as seções ordenadas
+    const todasAsSecoes = getTodasSecoesOrdenadas();
+
+    const secaoAtualIndex = todasAsSecoes.findIndex(s => 
+      (isNew && s.isNew && s.id === secaoId) || 
+      (!isNew && !s.isNew && s.id === secaoId)
+    );
+
+    if (secaoAtualIndex === -1) return;
+
+    // Determinar nova posição (com movimentação circular)
+    let newIndex;
+    if (direcao === 'up') {
+      newIndex = secaoAtualIndex === 0 ? todasAsSecoes.length - 1 : secaoAtualIndex - 1;
+    } else {
+      newIndex = secaoAtualIndex === todasAsSecoes.length - 1 ? 0 : secaoAtualIndex + 1;
+    }
+
+    // Usar a função de reordenação unificada
+    reordenarSecoesUnificada(secaoAtualIndex, newIndex);
+  };
+
+  // Função para reordenar seções (tanto para setas quanto drag and drop)
+  const reordenarSecoesUnificada = (fromIndex, toIndex) => {
+    if (fromIndex === toIndex) return;
+
+    const todasAsSecoes = getTodasSecoesOrdenadas();
+    
+    // Criar nova lista reordenada
+    const secoesReordenadas = [...todasAsSecoes];
+    const [secaoMovida] = secoesReordenadas.splice(fromIndex, 1);
+    secoesReordenadas.splice(toIndex, 0, secaoMovida);
+
+    // Atualizar as ordens de todas as seções afetadas
+    secoesReordenadas.forEach((secao, index) => {
+      const novaOrdem = index + 1;
+      
+      if (secao.isNew) {
+        // Atualizar nova seção
+        setNovasSecoes(prev => prev.map(s => 
+          s.id === secao.id ? { ...s, ordem: novaOrdem } : s
+        ));
+      } else {
+        // Atualizar seção existente
+        setSecoes(prev => prev.map(s => 
+          s.id === secao.id ? { ...s, ordem: novaOrdem } : s
+        ));
+        
+        // Marcar para salvamento se a ordem mudou
+        const secaoOriginal = secoesOriginais.find(s => s.id === secao.id);
+        if (secaoOriginal && secaoOriginal.ordem !== novaOrdem) {
+          const jaEditada = secoesEditadas.find(s => s.id === secao.id);
+          if (!jaEditada) {
+            setSecoesEditadas(prev => [...prev, {
+              ...secao,
+              ordem: novaOrdem
+            }]);
+          } else {
+            setSecoesEditadas(prev => prev.map(s => 
+              s.id === secao.id ? { ...s, ordem: novaOrdem } : s
+            ));
+          }
+        }
+      }
+    });
+  };
+
+  // Funções para drag and drop unificadas
+  const handleDragStartNovaSecao = (e, novaSecao, index) => {
+    const todasSecoes = getTodasSecoesOrdenadas();
+    const realIndex = todasSecoes.findIndex(s => s.id === novaSecao.id && s.isNew);
+    setDraggedSecao({ secao: novaSecao, index: realIndex, isNew: true });
+    e.dataTransfer.effectAllowed = 'move';
+    e.target.classList.add('dragging');
+  };
+
+  const handleDragStart = (e, secao, index) => {
+    const todasSecoes = getTodasSecoesOrdenadas();
+    const realIndex = todasSecoes.findIndex(s => s.id === secao.id && !s.isNew);
+    setDraggedSecao({ secao, index: realIndex, isNew: false });
+    e.dataTransfer.effectAllowed = 'move';
+    e.target.classList.add('dragging');
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = (e) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDragOverIndex(null);
+    }
+  };
+
+  const handleDrop = (e, dropIndex) => {
+    e.preventDefault();
+    
+    if (draggedSecao && draggedSecao.index !== dropIndex) {
+      reordenarSecoesUnificada(draggedSecao.index, dropIndex);
+    }
+    
+    setDraggedSecao(null);
+    setDragOverIndex(null);
+    
+    const draggedElement = document.querySelector('.dragging');
+    if (draggedElement) {
+      draggedElement.classList.remove('dragging');
+    }
+  };
+
+  const handleDragEnd = (e) => {
+    setDraggedSecao(null);
+    setDragOverIndex(null);
+    e.target.classList.remove('dragging');
   };
 
   // Funções para gerenciar imagens temporárias de novas seções
@@ -1642,208 +1731,246 @@ const Secoes = () => {
         <>
           <div className="secoes-list">
             {canManageSecoes && editMode ? (
-              /* Modo de edição para admins */
+              /* Modo de edição para admins - Renderizar todas as seções em ordem unificada */
               <>
-                {/* Seções existentes para admin */}
-                {secoesFiltradas.map((secao, index) => (
-                  <div 
-                    key={secao.id} 
-                    className={`secao-card ${expandedSecao === secao.id ? 'expanded' : ''} ${secoesEditadas.find(s => s.id === secao.id) ? 'secao-editada' : ''} ${reordenandoSecoes ? 'reordering' : ''} ${dragOverIndex === index ? 'drag-over' : ''}`}
-                    draggable={!reordenandoSecoes}
-                    onDragStart={(e) => handleDragStart(e, secao, index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, index)}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <div className="secao-header-controls">
-                      {/* Controles de reordenação mais intuitivos */}
-                      <div className="secao-reorder-controls">
-                        <div className="drag-handle" title="Arrastar para reordenar">
-                          ⋮⋮
-                        </div>
-                        <button
-                          className="reorder-button"
-                          title="Mover seção para cima"
-                          onClick={() => moverSecao(index, 'up')}
-                          disabled={reordenandoSecoes}
-                        >
-                          ↑
-                        </button>
-                        <button
-                          className="reorder-button"
-                          title="Mover seção para baixo"
-                          onClick={() => moverSecao(index, 'down')}
-                          disabled={reordenandoSecoes}
-                        >
-                          ↓
-                        </button>
-                      </div>
-
-                      {/* Conteúdo principal da seção */}
-                      <div className="secao-main-content">
-                        <div className="secao-field optional">
-                          <label>Título da seção</label>
-                          <input
-                            type="text"
-                            value={getSecaoValue(secao.id, 'titulo') || ''}
-                            onChange={(e) => handleUpdateSecao(secao.id, 'titulo', e.target.value)}
-                            placeholder="Ex: Introdução, Conceitos básicos..."
-                            className="secao-titulo-input"
-                          />
-                        </div>
-
-                        <div className="secao-field optional">
-                          <label>Resumo</label>
-                          <textarea
-                            value={getSecaoValue(secao.id, 'resumo') || ''}
-                            onChange={(e) => handleUpdateSecao(secao.id, 'resumo', e.target.value)}
-                            placeholder="Gerado por IA (sera implementado em breve)"
-                            className="secao-resumo-input"
-                            rows="2"
-                          />
-                        </div>
-
-                        {/* Controles de expansão */}
-                        <div className="secao-expand-controls">
+                {getTodasSecoesOrdenadas().map((secao, index) => (
+                  secao.isNew ? (
+                    // Nova seção
+                    <div 
+                      key={secao.id} 
+                      className={`secao-card expanded ${reordenandoSecoes ? 'reordering' : ''} ${dragOverIndex === index ? 'drag-over' : ''}`}
+                      draggable={!reordenandoSecoes}
+                      onDragStart={(e) => handleDragStartNovaSecao(e, secao, index)}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        setDragOverIndex(index);
+                      }}
+                      onDragLeave={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget)) {
+                          setDragOverIndex(null);
+                        }
+                      }}
+                      onDrop={(e) => handleDrop(e, index)}
+                      onDragEnd={(e) => {
+                        setDraggedSecao(null);
+                        setDragOverIndex(null);
+                        e.target.classList.remove('dragging');
+                      }}
+                    >
+                      <div className="secao-header-controls">
+                        {/* Controles de reordenação funcionais para novas seções */}
+                        <div className="secao-reorder-controls">
+                          <div className="drag-handle" title="Arrastar para reordenar">
+                            ⋮⋮
+                          </div>
                           <button
-                            className="expand-toggle-button"
-                            onClick={() => handleExpandSecao(secao.id)}
+                            className="reorder-button"
+                            title="Mover seção para cima"
+                            onClick={() => moverSecaoUnificada(secao.id, true, 'up')}
+                            disabled={reordenandoSecoes}
                           >
-                            {expandedSecao === secao.id ? (
-                              <>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M18 15l-6-6-6 6"></path>
-                                </svg>
-                                Recolher conteúdo
-                              </>
-                            ) : (
-                              <>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M6 9l6 6 6-6"></path>
-                                </svg>
-                                Expandir conteúdo
-                              </>
-                            )}
+                            ↑
+                          </button>
+                          <button
+                            className="reorder-button"
+                            title="Mover seção para baixo"
+                            onClick={() => moverSecaoUnificada(secao.id, true, 'down')}
+                            disabled={reordenandoSecoes}
+                          >
+                            ↓
+                          </button>
+                        </div>
+
+                        <div className="secao-main-content">
+                          <div className="secao-field optional">
+                            <label>Título da seção</label>
+                            <input
+                              type="text"
+                              value={secao.titulo || ''}
+                              onChange={(e) => atualizarNovaSecao(secao.id, 'titulo', e.target.value)}
+                              placeholder="Ex: Introdução, Conceitos básicos..."
+                              className="secao-titulo-input"
+                            />
+                          </div>
+
+                          <div className="secao-field optional">
+                            <label>Resumo</label>
+                            <textarea
+                              value={secao.resumo || ''}
+                              onChange={(e) => atualizarNovaSecao(secao.id, 'resumo', e.target.value)}
+                              placeholder="Gerado por IA (sera implementado em breve)"
+                              className="secao-resumo-input"
+                              rows="2"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="secao-actions">
+                          <button
+                            className="action-button delete"
+                            onClick={() => removerNovaSecao(secao.id)}
+                            title="Remover nova seção"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M3 6h18"></path>
+                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                            </svg>
                           </button>
                         </div>
                       </div>
 
-                      {/* Controles de ação da seção */}
-                      <div className="secao-actions">
-                        <button
-                          className="action-button delete"
-                          onClick={() => handleDeleteSecaoModal(secao)}
-                          title="Remover seção"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M3 6h18"></path>
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Conteúdo expandido da seção */}
-                    {expandedSecao === secao.id && (
                       <div className="secao-content">
-                        {renderSecaoContentAdmin(secao)}
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                {/* Novas seções para admin */}
-                {novasSecoes.map((novaSecao, index) => (
-                  <div key={novaSecao.id} className="secao-card expanded">
-                    <div className="secao-header-controls">
-                      {/* Espaçamento para alinhamento com seções existentes */}
-                      <div className="secao-reorder-controls" style={{ opacity: 0.3 }}>
-                        <button className="reorder-button" disabled>↑</button>
-                        <button className="reorder-button" disabled>↓</button>
-                      </div>
-
-                      <div className="secao-main-content">
-                        <div className="secao-field optional">
-                          <label>Título da seção</label>
-                          <input
-                            type="text"
-                            value={novaSecao.titulo || ''}
-                            onChange={(e) => atualizarNovaSecao(novaSecao.id, 'titulo', e.target.value)}
-                            placeholder="Ex: Introdução, Conceitos básicos..."
-                            className="secao-titulo-input"
-                          />
-                        </div>
-
-                        <div className="secao-field optional">
-                          <label>Resumo</label>
+                        <div className="secao-field">
+                          <label>Conteúdo</label>
                           <textarea
-                            value={novaSecao.resumo || ''}
-                            onChange={(e) => atualizarNovaSecao(novaSecao.id, 'resumo', e.target.value)}
-                            placeholder="Gerado por IA (sera implementado em breve)"
-                            className="secao-resumo-input"
-                            rows="2"
+                            value={secao.original || ''}
+                            onChange={(e) => atualizarNovaSecao(secao.id, 'original', e.target.value)}
+                            className="secao-content-input"
+                            rows="6"
+                            placeholder="Digite o conteúdo da seção"
                           />
+                        </div>
+
+                        {/* Campo Link 3D com melhor organização */}
+                        <div className="secao-field optional">
+                          <label>Link 3D</label>
+                          <input
+                            type="url"
+                            value={secao.link3d || ''}
+                            onChange={(e) => atualizarNovaSecao(secao.id, 'link3d', e.target.value)}
+                            className="secao-link3d-input"
+                            placeholder="https://exemplo.com/modelo-3d"
+                          />
+                          {secao.link3d && (
+                            <div className="link3d-order">
+                              <label>Posição do Link 3D:</label>
+                              <select
+                                value={secao.ordem3d || 1}
+                                onChange={(e) => atualizarNovaSecao(secao.id, 'ordem3d', parseInt(e.target.value))}
+                                className="order-select"
+                              >
+                                <option value={1}>Após o conteúdo</option>
+                                <option value={99}>No final (após todas as imagens)</option>
+                              </select>
+                              <small>Define onde o link 3D aparecerá no conteúdo</small>
+                            </div>
+                          )}
+                        </div>
+
+                        {renderImagensTemporarias(secao.id)}
+                      </div>
+                    </div>
+                  ) : (
+                    // Seção existente
+                    <div 
+                      key={secao.id} 
+                      className={`secao-card ${expandedSecao === secao.id ? 'expanded' : ''} ${secoesEditadas.find(s => s.id === secao.id) ? 'secao-editada' : ''} ${reordenandoSecoes ? 'reordering' : ''} ${dragOverIndex === index ? 'drag-over' : ''}`}
+                      draggable={!reordenandoSecoes}
+                      onDragStart={(e) => handleDragStart(e, secao, index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, index)}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <div className="secao-header-controls">
+                        {/* Controles de reordenação mais intuitivos */}
+                        <div className="secao-reorder-controls">
+                          <div className="drag-handle" title="Arrastar para reordenar">
+                            ⋮⋮
+                          </div>
+                          <button
+                            className="reorder-button"
+                            title="Mover seção para cima"
+                            onClick={() => moverSecaoUnificada(secao.id, false, 'up')}
+                            disabled={reordenandoSecoes}
+                          >
+                            ↑
+                          </button>
+                          <button
+                            className="reorder-button"
+                            title="Mover seção para baixo"
+                            onClick={() => moverSecaoUnificada(secao.id, false, 'down')}
+                            disabled={reordenandoSecoes}
+                          >
+                            ↓
+                          </button>
+                        </div>
+
+                        {/* Conteúdo principal da seção */}
+                        <div className="secao-main-content">
+                          <div className="secao-field optional">
+                            <label>Título da seção</label>
+                            <input
+                              type="text"
+                              value={getSecaoValue(secao.id, 'titulo') || ''}
+                              onChange={(e) => handleUpdateSecao(secao.id, 'titulo', e.target.value)}
+                              placeholder="Ex: Introdução, Conceitos básicos..."
+                              className="secao-titulo-input"
+                            />
+                          </div>
+
+                          <div className="secao-field optional">
+                            <label>Resumo</label>
+                            <textarea
+                              value={getSecaoValue(secao.id, 'resumo') || ''}
+                              onChange={(e) => handleUpdateSecao(secao.id, 'resumo', e.target.value)}
+                              placeholder="Gerado por IA (sera implementado em breve)"
+                              className="secao-resumo-input"
+                              rows="2"
+                            />
+                          </div>
+
+                          {/* Controles de expansão */}
+                          <div className="secao-expand-controls">
+                            <button
+                              className="expand-toggle-button"
+                              onClick={() => handleExpandSecao(secao.id)}
+                            >
+                              {expandedSecao === secao.id ? (
+                                <>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M18 15l-6-6-6 6"></path>
+                                  </svg>
+                                  Recolher conteúdo
+                                </>
+                              ) : (
+                                <>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M6 9l6 6 6-6"></path>
+                                  </svg>
+                                  Expandir conteúdo
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Controles de ação da seção */}
+                        <div className="secao-actions">
+                          <button
+                            className="action-button delete"
+                            onClick={() => handleDeleteSecaoModal(secao)}
+                            title="Remover seção"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M3 6h18"></path>
+                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                            </svg>
+                          </button>
                         </div>
                       </div>
 
-                      <div className="secao-actions">
-                        <button
-                          className="action-button delete"
-                          onClick={() => removerNovaSecao(novaSecao.id)}
-                          title="Remover nova seção"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M3 6h18"></path>
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                          </svg>
-                        </button>
-                      </div>
+                      {/* Conteúdo expandido da seção */}
+                      {expandedSecao === secao.id && (
+                        <div className="secao-content">
+                          {renderSecaoContentAdmin(secao)}
+                        </div>
+                      )}
                     </div>
-
-                    <div className="secao-content">
-                      <div className="secao-field">
-                        <label>Conteúdo</label>
-                        <textarea
-                          value={novaSecao.original || ''}
-                          onChange={(e) => atualizarNovaSecao(novaSecao.id, 'original', e.target.value)}
-                          className="secao-content-input"
-                          rows="6"
-                          placeholder="Digite o conteúdo da seção"
-                        />
-                      </div>
-
-                      {/* Campo Link 3D com melhor organização */}
-                      <div className="secao-field optional">
-                        <label>Link 3D</label>
-                        <input
-                          type="url"
-                          value={novaSecao.link3d || ''}
-                          onChange={(e) => atualizarNovaSecao(novaSecao.id, 'link3d', e.target.value)}
-                          className="secao-link3d-input"
-                          placeholder="https://exemplo.com/modelo-3d"
-                        />
-                        {novaSecao.link3d && (
-                          <div className="link3d-order">
-                            <label>Posição do Link 3D:</label>
-                            <select
-                              value={novaSecao.ordem3d || 1}
-                              onChange={(e) => atualizarNovaSecao(novaSecao.id, 'ordem3d', parseInt(e.target.value))}
-                              className="order-select"
-                            >
-                              <option value={1}>Após o conteúdo</option>
-                              <option value={99}>No final (após todas as imagens)</option>
-                            </select>
-                            <small>Define onde o link 3D aparecerá no conteúdo</small>
-                          </div>
-                        )}
-                      </div>
-
-                      {renderImagensTemporarias(novaSecao.id)}
-                    </div>
-                  </div>
+                  )
                 ))}
 
                 {/* Botão para adicionar nova seção - aparece quando há conteúdo (seções existentes ou uma nova criada) */}
