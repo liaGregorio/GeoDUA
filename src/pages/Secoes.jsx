@@ -64,7 +64,8 @@ const Secoes = () => {
   // Estados para drag and drop
   const [draggedSecao, setDraggedSecao] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
-  
+  const [isDragDisabled, setIsDragDisabled] = useState(false);
+
   // Estados dos modais (manter apenas para imagens)
   const [showDeleteSecaoModal, setShowDeleteSecaoModal] = useState(false);
   const [showAddImagemModal, setShowAddImagemModal] = useState(false);
@@ -1384,7 +1385,36 @@ const Secoes = () => {
   };
 
   // Funções para drag and drop unificadas
+  const handleMouseOverDraggable = (e) => {
+    // Verificar se o mouse está sobre um elemento que não deve permitir drag
+    const target = e.target;
+    const isDragForbidden = target.tagName === 'INPUT' || 
+                           target.tagName === 'TEXTAREA' || 
+                           target.tagName === 'SELECT' ||
+                           target.tagName === 'BUTTON' ||
+                           target.isContentEditable ||
+                           target.closest('input, textarea, select, button, .image-description-input, .secao-content-input, .secao-link3d-input');
+    
+    setIsDragDisabled(isDragForbidden);
+  };
+
+  const handleMouseLeaveDraggable = (e) => {
+    // Reabilitar drag quando sair da área
+    setIsDragDisabled(false);
+  };
+
   const handleDragStartNovaSecao = (e, novaSecao, index) => {
+    // Prevenir drag quando estiver interagindo com inputs, textareas, etc.
+    if (e.target.tagName === 'INPUT' || 
+        e.target.tagName === 'TEXTAREA' || 
+        e.target.tagName === 'SELECT' ||
+        e.target.tagName === 'BUTTON' ||
+        e.target.isContentEditable ||
+        e.target.closest('input, textarea, select, button')) {
+      e.preventDefault();
+      return;
+    }
+
     const todasSecoes = getTodasSecoesOrdenadas();
     const realIndex = todasSecoes.findIndex(s => s.id === novaSecao.id && s.isNew);
     setDraggedSecao({ secao: novaSecao, index: realIndex, isNew: true });
@@ -1393,6 +1423,17 @@ const Secoes = () => {
   };
 
   const handleDragStart = (e, secao, index) => {
+    // Prevenir drag quando estiver interagindo com inputs, textareas, etc.
+    if (e.target.tagName === 'INPUT' || 
+        e.target.tagName === 'TEXTAREA' || 
+        e.target.tagName === 'SELECT' ||
+        e.target.tagName === 'BUTTON' ||
+        e.target.isContentEditable ||
+        e.target.closest('input, textarea, select, button')) {
+      e.preventDefault();
+      return;
+    }
+
     const todasSecoes = getTodasSecoesOrdenadas();
     const realIndex = todasSecoes.findIndex(s => s.id === secao.id && !s.isNew);
     setDraggedSecao({ secao, index: realIndex, isNew: false });
@@ -1846,7 +1887,9 @@ const Secoes = () => {
                     <div 
                       key={secao.id} 
                       className={`secao-card expanded ${reordenandoSecoes ? 'reordering' : ''} ${dragOverIndex === index ? 'drag-over' : ''}`}
-                      draggable={!reordenandoSecoes}
+                      draggable={!reordenandoSecoes && !isDragDisabled}
+                      onMouseOver={handleMouseOverDraggable}
+                      onMouseLeave={handleMouseLeaveDraggable}
                       onDragStart={(e) => handleDragStartNovaSecao(e, secao, index)}
                       onDragOver={(e) => {
                         e.preventDefault();
@@ -1974,7 +2017,9 @@ const Secoes = () => {
                     <div 
                       key={secao.id} 
                       className={`secao-card ${expandedSecao === secao.id ? 'expanded' : ''} ${secoesEditadas.find(s => s.id === secao.id) ? 'secao-editada' : ''} ${reordenandoSecoes ? 'reordering' : ''} ${dragOverIndex === index ? 'drag-over' : ''}`}
-                      draggable={!reordenandoSecoes}
+                      draggable={!reordenandoSecoes && !isDragDisabled}
+                      onMouseOver={handleMouseOverDraggable}
+                      onMouseLeave={handleMouseLeaveDraggable}
                       onDragStart={(e) => handleDragStart(e, secao, index)}
                       onDragOver={(e) => handleDragOver(e, index)}
                       onDragLeave={handleDragLeave}
