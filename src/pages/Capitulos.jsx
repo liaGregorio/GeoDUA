@@ -19,9 +19,18 @@ const Capitulos = () => {
   const [editingCapitulo, setEditingCapitulo] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, capitulo: null });
   const [deleting, setDeleting] = useState(false);
+  const [notification, setNotification] = useState({ show: false, type: '', message: '' });
 
   // Verificar se o usuário pode gerenciar capítulos
   const canManageCapitulos = user && user.tipoUsuario && user.tipoUsuario.id === 1;
+
+  // Função para mostrar notificações
+  const showNotification = (type, message) => {
+    setNotification({ show: true, type, message });
+    setTimeout(() => {
+      setNotification({ show: false, type: '', message: '' });
+    }, 5000);
+  };
 
   // Buscar informações do livro
   const fetchLivro = async () => {
@@ -91,12 +100,19 @@ const Capitulos = () => {
     
     try {
       setDeleting(true);
-      await deleteCapitulo(deleteModal.capitulo.id);
+      const response = await deleteCapitulo(deleteModal.capitulo.id);
       await fetchCapitulos();
       setDeleteModal({ isOpen: false, capitulo: null });
+      
+      // Usar a mensagem que vem da API, que já inclui os detalhes formatados
+      const mensagem = response && response.message 
+        ? response.message 
+        : `Capítulo "${deleteModal.capitulo.nome}" excluído com sucesso`;
+      
+      showNotification('success', mensagem);
     } catch (error) {
       console.error('Erro ao deletar capítulo:', error);
-      alert('Erro ao deletar capítulo. Tente novamente.');
+      showNotification('error', 'Erro ao deletar capítulo. Tente novamente.');
     } finally {
       setDeleting(false);
     }
@@ -123,6 +139,28 @@ const Capitulos = () => {
 
   return (
     <div className="capitulos-container">
+      {/* Notificação */}
+      {notification.show && (
+        <div className={`notification ${notification.type}`}>
+          <div className="notification-content">
+            {notification.type === 'success' && (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 12l2 2 4-4"></path>
+                <circle cx="12" cy="12" r="10"></circle>
+              </svg>
+            )}
+            {notification.type === 'error' && (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+            )}
+            <span>{notification.message}</span>
+          </div>
+        </div>
+      )}
+
       {/* Header com botão voltar */}
       <div className="capitulos-header">
         <button className="voltar-button" onClick={handleVoltar}>

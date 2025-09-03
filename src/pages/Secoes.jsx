@@ -71,6 +71,9 @@ const Secoes = () => {
   const [showConfirmDiscardModal, setShowConfirmDiscardModal] = useState(false);
   const [selectedSecao, setSelectedSecao] = useState(null);
   const [selectedSecaoForImage, setSelectedSecaoForImage] = useState(null);
+  
+  // Estado para controlar ações pendentes
+  const [pendingAction, setPendingAction] = useState(null);
 
   // Verificar se o usuário pode gerenciar seções
   const canManageSecoes = user && user.tipoUsuario && user.tipoUsuario.id === 1;
@@ -94,23 +97,53 @@ const Secoes = () => {
 
   const exitEditModeAfterSave = () => {
     setEditMode(false);
+    localStorage.setItem('editMode', 'false');
     showNotification('success', 'Alterações salvas com sucesso!');
+  };
+
+  // Função genérica para lidar com alterações não salvas
+  const handleUnsavedChanges = (actionType, actionData = null) => {
+    if (hasUnsavedChanges()) {
+      setPendingAction({ type: actionType, data: actionData });
+      setShowConfirmDiscardModal(true);
+      return false; // Bloqueia a ação
+    }
+    return true; // Permite a ação
+  };
+
+  // Executar ação pendente após confirmação
+  const executePendingAction = () => {
+    if (!pendingAction) return;
+    
+    const { type, data } = pendingAction;
+    
+    switch (type) {
+      case 'EXIT_EDIT_MODE':
+        setEditMode(false);
+        localStorage.setItem('editMode', 'false');
+        break;
+      case 'NAVIGATE_BACK':
+        navigate(`/livro/${livroId}/capitulos`);
+        break;
+      case 'NAVIGATE_TO':
+        if (data?.path) {
+          navigate(data.path);
+        }
+        break;
+      case 'DISCARD_ONLY':
+        // Apenas descartar, não fazer nada mais
+        break;
+    }
+    
+    setPendingAction(null);
   };
 
   // Verificar alterações não salvas ao sair do modo de edição
   useEffect(() => {
     if (!editMode && hasUnsavedChanges()) {
-      if (window.confirm('Você tem alterações não salvas. Deseja descartá-las?')) {
-        // Limpar alterações pendentes
-        setSecoesEditadas([]);
-        setNovasSecoes([]);
-        setImagensTemporarias({});
-        setImagensEditadas({});
-        setImagensMarcadasParaRemocao({});
-      } else {
-        // Voltar ao modo de edição se cancelar
-        setEditMode(true);
-      }
+      // Voltar temporariamente ao modo de edição e mostrar modal
+      setEditMode(true);
+      handleUnsavedChanges('EXIT_EDIT_MODE');
     }
   }, [editMode]);
 
@@ -185,6 +218,43 @@ const Secoes = () => {
     fetchSecoes();
   }, [livroId, capituloId]);
 
+  // Proteção contra fechamento/navegação da página com alterações não salvas
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasUnsavedChanges()) {
+        e.preventDefault();
+        e.returnValue = 'Você tem alterações não salvas. Tem certeza que deseja sair?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [secoesEditadas, novasSecoes, imagensTemporarias, imagensEditadas, imagensMarcadasParaRemocao]);
+
+  // Proteção contra navegação via botão voltar do navegador
+  useEffect(() => {
+    const handlePopState = (e) => {
+      if (hasUnsavedChanges()) {
+        // Prevenir a navegação
+        window.history.pushState(null, '', window.location.pathname);
+        // Mostrar modal de confirmação
+        handleUnsavedChanges('NAVIGATE_BACK');
+      }
+    };
+
+    // Se há alterações não salvas, adicionar entrada no histórico para interceptar
+    if (hasUnsavedChanges()) {
+      window.history.pushState(null, '', window.location.pathname);
+    }
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [secoesEditadas, novasSecoes, imagensTemporarias, imagensEditadas, imagensMarcadasParaRemocao]);
+
   // Controlar visibilidade do botão "voltar ao topo" e posição do edit mode
   useEffect(() => {
     const handleScroll = () => {
@@ -230,7 +300,9 @@ const Secoes = () => {
   };
 
   const handleVoltar = () => {
-    navigate(`/livro/${livroId}/capitulos`);
+    if (handleUnsavedChanges('NAVIGATE_BACK')) {
+      navigate(`/livro/${livroId}/capitulos`);
+    }
   };
 
   const handleUpdateSecao = (secaoId, field, value) => {
@@ -1615,11 +1687,36 @@ const Secoes = () => {
   };
 
   const confirmarDescarte = () => {
+    // Limpar todas as alterações pendentes
     setSecoesEditadas([]);
     setNovasSecoes([]);
     setImagensTemporarias({});
     setImagensEditadas({});
     setImagensMarcadasParaRemocao({});
+    
+    // Restaurar ordem original das seções
+    if (secoesOriginais.length > 0) {
+      setSecoes([...secoesOriginais]);
+    }
+    
+    // Fechar o modal
+    setShowConfirmDiscardModal(false);
+    
+    // Executar a ação pendente (se houver)
+    executePendingAction();
+  };
+
+  const cancelarDescarte = () => {
+    // Fechar o modal e limpar ação pendente
+    setShowConfirmDiscardModal(false);
+    setPendingAction(null);
+  };
+
+  // Função para navegação protegida (pode ser chamada de qualquer lugar)
+  const navigateWithUnsavedCheck = (path) => {
+    if (handleUnsavedChanges('NAVIGATE_TO', { path })) {
+      navigate(path);
+    }
   };
 
   const salvarComoRascunho = async () => {
@@ -2018,7 +2115,7 @@ const Secoes = () => {
               <div className="edit-actions-inline">
                 <button 
                   className="btn-outline btn-sm"
-                  onClick={() => setShowConfirmDiscardModal(true)}
+                  onClick={() => handleUnsavedChanges('DISCARD_ONLY')}
                   disabled={saving}
                 >
                   Descartar
@@ -2104,7 +2201,7 @@ const Secoes = () => {
 
       <ConfirmDiscardModal
         isOpen={showConfirmDiscardModal}
-        onClose={() => setShowConfirmDiscardModal(false)}
+        onClose={cancelarDescarte}
         onConfirm={confirmarDescarte}
         title="Descartar alterações?"
         message="Tem certeza que deseja descartar todas as alterações não salvas? Esta ação não pode ser desfeita."

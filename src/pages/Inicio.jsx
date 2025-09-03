@@ -16,9 +16,18 @@ const Inicio = () => {
   const [error, setError] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, book: null });
   const [deleting, setDeleting] = useState(false);
+  const [notification, setNotification] = useState({ show: false, type: '', message: '' });
 
   // Verificar se o usuário pode adicionar livros
   const canAddBooks = user && user.tipoUsuario && user.tipoUsuario.id === 1;
+
+  // Função para mostrar notificações
+  const showNotification = (type, message) => {
+    setNotification({ show: true, type, message });
+    setTimeout(() => {
+      setNotification({ show: false, type: '', message: '' });
+    }, 5000);
+  };
 
   // Carregar livros da API
   const fetchBooks = async () => {
@@ -81,14 +90,22 @@ const Inicio = () => {
     
     try {
       setDeleting(true);
-      await deleteBook(deleteModal.book.id);
+      const response = await deleteBook(deleteModal.book.id);
+      
       // Recarregar a lista de livros após deletar
       const books = await getBooks();
       setLivros(books);
       setDeleteModal({ isOpen: false, book: null });
+      
+      // Usar a mensagem que vem da API, que já inclui os detalhes formatados
+      const mensagem = response && response.message 
+        ? response.message 
+        : `Livro "${deleteModal.book.nome}" excluído com sucesso`;
+      
+      showNotification('success', mensagem);
     } catch (error) {
       console.error('Erro ao deletar livro:', error);
-      alert('Erro ao deletar livro. Tente novamente.');
+      showNotification('error', 'Erro ao deletar livro. Tente novamente.');
     } finally {
       setDeleting(false);
     }
@@ -116,6 +133,28 @@ const Inicio = () => {
 
   return (
     <div className="inicio-container">
+      {/* Notificação */}
+      {notification.show && (
+        <div className={`notification ${notification.type}`}>
+          <div className="notification-content">
+            {notification.type === 'success' && (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 12l2 2 4-4"></path>
+                <circle cx="12" cy="12" r="10"></circle>
+              </svg>
+            )}
+            {notification.type === 'error' && (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+            )}
+            <span>{notification.message}</span>
+          </div>
+        </div>
+      )}
+
       {/* Loading state */}
       {loading && (
         <div className="loading-message">
