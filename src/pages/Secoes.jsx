@@ -16,6 +16,16 @@ const Secoes = () => {
   const { user } = useAuth();
   const { searchTerm, editMode, setEditMode } = useOutletContext();
   
+  // Função utilitária para garantir que URLs tenham protocolo
+  const formatUrl = (url) => {
+    if (!url || url.trim() === '') return '';
+    const trimmedUrl = url.trim();
+    if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
+      return trimmedUrl;
+    }
+    return `https://${trimmedUrl}`;
+  };
+  
   const [secoes, setSecoes] = useState([]);
   const [secoesOriginais, setSecoesOriginais] = useState([]); // Estado para preservar ordem original
   const [capitulo, setCapitulo] = useState(null);
@@ -413,7 +423,7 @@ const Secoes = () => {
             {item.type === 'link3d' && (
               <div className="secao-link3d-user">
                 <a 
-                  href={item.content} 
+                  href={formatUrl(item.content)} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="link-3d-button"
@@ -510,7 +520,7 @@ const Secoes = () => {
             )}
             {item.type === 'link3d' && (
               <div className="secao-link3d">
-                <a href={item.content} target="_blank" rel="noopener noreferrer">
+                <a href={formatUrl(item.content)} target="_blank" rel="noopener noreferrer">
                   {item.content}
                 </a>
               </div>
