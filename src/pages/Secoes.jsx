@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getSecoes, createSecao, updateSecao, deleteSecao } from '../services/secaoService';
+import { getSecoes, createSecao, updateSecao, deleteSecao, salvarSecoesComoRascunho } from '../services/secaoService';
 import { getImagens, createImagem, deleteImagem, updateImagem, fileToBytea } from '../services/imagemService';
-import { getCapitulos } from '../services/capituloService';
+import { getCapitulos, getRascunhosByCapitulo, deleteCapitulo } from '../services/capituloService';
+import { api } from '../services/api';
 import { processImageData } from '../utils/imageUtils';
 import DeleteSecaoModal from '../components/DeleteSecaoModal';
 import AddImagemModal from '../components/AddImagemModal';
 import ConfirmDiscardModal from '../components/ConfirmDiscardModal';
+import PublishConfirmModal from '../components/PublishConfirmModal';
 import '../styles/secaoReorder.css';
 
 const Secoes = () => {
@@ -76,8 +78,24 @@ const Secoes = () => {
   // Estado para controlar ações pendentes
   const [pendingAction, setPendingAction] = useState(null);
 
+  // Estados para rascunhos
+  const [rascunhos, setRascunhos] = useState([]);
+  const [selectedRascunho, setSelectedRascunho] = useState(null);
+  const [showRascunhos, setShowRascunhos] = useState(false);
+  
+  // Estados para modal de publicação
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [rascunhoParaPublicar, setRascunhoParaPublicar] = useState(null);
+  const [publishingRascunho, setPublishingRascunho] = useState(false);
+
   // Verificar se o usuário pode gerenciar seções
   const canManageSecoes = user && user.tipoUsuario && user.tipoUsuario.id === 1;
+
+  // Verificar se estamos editando um rascunho
+  const isEditingDraft = capitulo && 
+    capitulo.id_capitulo_original !== null && 
+    capitulo.id_capitulo_original !== undefined &&
+    capitulo.id_capitulo_original !== '';
 
   // Função para mostrar notificações
   const showNotification = (type, message) => {
@@ -151,9 +169,29 @@ const Secoes = () => {
   // Buscar informações do capítulo
   const fetchCapitulo = async () => {
     try {
+      // Primeiro tenta buscar entre os capítulos principais
       const capitulos = await getCapitulos(livroId);
-      const capituloEncontrado = capitulos.find(cap => cap.id === parseInt(capituloId));
+      let capituloEncontrado = capitulos.find(cap => cap.id === parseInt(capituloId));
+      
+      // Se não encontrou, pode ser um rascunho - buscar entre todos os rascunhos
+      if (!capituloEncontrado && user?.id) {
+        try {
+          for (const cap of capitulos) {
+            const rascunhosDoCapitulo = await getRascunhosByCapitulo(cap.id, user.id);
+            if (Array.isArray(rascunhosDoCapitulo)) {
+              capituloEncontrado = rascunhosDoCapitulo.find(rascunho => rascunho.id === parseInt(capituloId));
+              if (capituloEncontrado) {
+                break;
+              }
+            }
+          }
+        } catch (rascunhoError) {
+          // Erro ao buscar rascunhos não é crítico
+        }
+      }
+      
       setCapitulo(capituloEncontrado);
+      
     } catch (err) {
       console.error('Erro ao buscar capítulo:', err);
     }
@@ -215,9 +253,22 @@ const Secoes = () => {
   };
 
   useEffect(() => {
-    fetchCapitulo();
     fetchSecoes();
   }, [livroId, capituloId]);
+
+  // Buscar capítulo quando user estiver disponível
+  useEffect(() => {
+    if (user?.id) {
+      fetchCapitulo();
+    }
+  }, [livroId, capituloId, user?.id]);
+
+  // Buscar rascunhos quando user e capitulo estiverem disponíveis
+  useEffect(() => {
+    if (user?.id && capitulo) {
+      fetchRascunhos();
+    }
+  }, [user?.id, capitulo?.id, capitulo?.id_capitulo_original]);
 
   // Proteção contra fechamento/navegação da página com alterações não salvas
   useEffect(() => {
@@ -1760,9 +1811,179 @@ const Secoes = () => {
     }
   };
 
+  // Buscar rascunhos do capítulo
+  const fetchRascunhos = async () => {
+    if (!user || !canManageSecoes) return;
+    
+    try {
+      // Se estamos editando um rascunho, buscar rascunhos do capítulo original
+      const targetCapituloId = isEditingDraft && capitulo?.id_capitulo_original 
+        ? capitulo.id_capitulo_original 
+        : capituloId;
+        
+      const rascunhosData = await getRascunhosByCapitulo(targetCapituloId, user.id);
+      setRascunhos(Array.isArray(rascunhosData) ? rascunhosData : []);
+    } catch (error) {
+      console.error('Erro ao buscar rascunhos:', error);
+      setRascunhos([]);
+    }
+  };
+
   const salvarComoRascunho = async () => {
-    // TODO: Implementar lógica para criar capítulo de rascunho
-    console.log('ℹ️ Funcionalidade de rascunho será implementada em breve');
+    if (!canManageSecoes || !user) {
+      showNotification('error', 'Você não tem permissão para salvar rascunhos');
+      return;
+    }
+
+    if (isEditingDraft) {
+      showNotification('warning', 'Você já está editando um rascunho. Use "Salvar" ou "Publicar Rascunho"');
+      return;
+    }
+
+    if (!hasUnsavedChanges()) {
+      showNotification('warning', 'Não há alterações para salvar como rascunho');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      
+      // Preparar dados das seções para salvar
+      const secoesParaSalvar = [];
+      
+      // Seções editadas
+      secoesEditadas.forEach(secaoEditada => {
+        const secaoOriginal = secoes.find(s => s.id === secaoEditada.id);
+        if (secaoOriginal) {
+          secoesParaSalvar.push({
+            ...secaoOriginal,
+            ...secaoEditada,
+            imagens: secaoImages[secaoEditada.id] || [],
+            imagensEditadas: imagensEditadas[secaoEditada.id] || [],
+            imagensMarcadasParaRemocao: imagensMarcadasParaRemocao[secaoEditada.id] || []
+          });
+        }
+      });
+      
+      // Novas seções
+      novasSecoes.forEach(novaSecao => {
+        secoesParaSalvar.push({
+          ...novaSecao,
+          imagens: imagensTemporarias[novaSecao.id] || []
+        });
+      });
+
+      // Salvar como rascunho
+      const resultado = await salvarSecoesComoRascunho(capituloId, secoesParaSalvar, user.id);
+      
+      showNotification('success', 'Rascunho salvo com sucesso!');
+      
+      // Limpar estados de edição
+      setSecoesEditadas([]);
+      setNovasSecoes([]);
+      setImagensTemporarias({});
+      setImagensEditadas({});
+      setImagensMarcadasParaRemocao({});
+      
+      // Atualizar lista de rascunhos
+      await fetchRascunhos();
+      
+      // Sair do modo de edição
+      exitEditModeAfterSave();
+      
+    } catch (error) {
+      console.error('Erro ao salvar rascunho:', error);
+      showNotification('error', error.message || 'Erro ao salvar rascunho');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Funções para gerenciar rascunhos
+  const carregarRascunho = async (rascunhoId) => {
+    if (!canManageSecoes) return;
+    
+    try {
+      setLoading(true);
+      // Navegar para o rascunho
+      navigate(`/livro/${livroId}/capitulo/${rascunhoId}/secoes`);
+    } catch (error) {
+      console.error('Erro ao carregar rascunho:', error);
+      showNotification('error', 'Erro ao carregar rascunho');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const publicarRascunho = (rascunhoId, nomeRascunho) => {
+    if (!canManageSecoes) return;
+    
+    // Preparar dados para o modal
+    const isCurrentDraft = rascunhoId === capituloId;
+    setRascunhoParaPublicar({
+      id: rascunhoId,
+      nome: nomeRascunho,
+      isCurrentDraft,
+      actualRascunhoId: isCurrentDraft ? capituloId : rascunhoId,
+      actualDestinationId: isCurrentDraft ? capitulo?.id_capitulo_original : capituloId
+    });
+    setShowPublishModal(true);
+  };
+  
+  const confirmarPublicacao = async () => {
+    if (!rascunhoParaPublicar) return;
+    
+    try {
+      setPublishingRascunho(true);
+      
+      // Fazer a requisição para publicar o rascunho
+      const response = await api.post(`/capitulos/${rascunhoParaPublicar.actualRascunhoId}/publicar`, {
+        id_capitulo_destino: rascunhoParaPublicar.actualDestinationId
+      });
+      
+      showNotification('success', 'Rascunho publicado com sucesso! Redirecionando para o capítulo principal...');
+      
+      // Se estávamos editando o rascunho, navegar para o capítulo principal
+      if (rascunhoParaPublicar.isCurrentDraft) {
+        setTimeout(() => {
+          navigate(`/livro/${livroId}/capitulo/${rascunhoParaPublicar.actualDestinationId}/secoes`);
+        }, 1500);
+      } else {
+        // Recarregar dados
+        await fetchSecoes();
+        await fetchRascunhos();
+        
+        // Sair do modo de edição se estiver ativo
+        if (editMode) {
+          setEditMode(false);
+        }
+      }
+      
+      // Fechar modal
+      setShowPublishModal(false);
+      setRascunhoParaPublicar(null);
+      
+    } catch (error) {
+      console.error('Erro ao publicar rascunho:', error);
+      showNotification('error', error.response?.data?.message || 'Erro ao publicar rascunho');
+    } finally {
+      setPublishingRascunho(false);
+    }
+  };
+
+  const excluirRascunho = async (rascunhoId, nomeRascunho) => {
+    if (!canManageSecoes || !window.confirm(`Tem certeza que deseja excluir o rascunho "${nomeRascunho}"?`)) {
+      return;
+    }
+    
+    try {
+      await deleteCapitulo(rascunhoId);
+      showNotification('success', 'Rascunho excluído com sucesso');
+      await fetchRascunhos();
+    } catch (error) {
+      console.error('Erro ao excluir rascunho:', error);
+      showNotification('error', 'Erro ao excluir rascunho');
+    }
   };
 
   const handleDeleteSecaoModal = (secao) => {
@@ -1840,10 +2061,87 @@ const Secoes = () => {
             </button>
             
             <div className="secoes-title">
-              {capitulo && <h1>{capitulo.nome}</h1>}
+              {capitulo && (
+                <div className="capitulo-title-container">
+                  <h1>{capitulo.nome}</h1>
+                  {isEditingDraft && (
+                    <span className="draft-indicator">Rascunho</span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
-        </div>      {/* Loading state */}
+        </div>
+
+      {/* Seção de rascunhos - apenas para admins, quando há rascunhos, e não estamos editando um rascunho */}
+      {canManageSecoes && rascunhos.length > 0 && !isEditingDraft && (
+        <div className="rascunhos-section">
+          <div className="rascunhos-header">
+            <h3>Seus Rascunhos</h3>
+            <button 
+              className="toggle-rascunhos-button"
+              onClick={() => setShowRascunhos(!showRascunhos)}
+            >
+              {showRascunhos ? 'Ocultar' : 'Mostrar'} ({rascunhos.length})
+              <span className={`toggle-icon ${showRascunhos ? 'rotated' : ''}`}>
+                ▼
+              </span>
+            </button>
+          </div>
+          
+          {showRascunhos && (
+            <div className="rascunhos-list">
+              {rascunhos.map(rascunho => (
+                <div key={rascunho.id} className="rascunho-card">
+                  <div className="rascunho-content">
+                    <div className="rascunho-info">
+                      <h4>{rascunho.nome}</h4>
+                    </div>
+                    <div className="rascunho-actions">
+                      <button 
+                        className="rascunho-action-btn edit-btn"
+                        onClick={() => carregarRascunho(rascunho.id)}
+                        title="Editar rascunho"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="m18.5 2.5 a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Editar
+                      </button>
+                      <button 
+                        className="rascunho-action-btn publish-btn"
+                        onClick={() => publicarRascunho(rascunho.id, rascunho.nome)}
+                        title="Substituir capítulo principal por este rascunho"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                        </svg>
+                        Publicar
+                      </button>
+                      <button 
+                        className="rascunho-action-btn delete-btn"
+                        onClick={() => excluirRascunho(rascunho.id, rascunho.nome)}
+                        title="Excluir rascunho"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="3,6 5,6 21,6"></polyline>
+                          <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                          <line x1="10" y1="11" x2="10" y2="17"></line>
+                          <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                        Excluir
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Loading state */}
       {loading && (
         <div className="loading-message">
           <p>Carregando seções...</p>
@@ -2155,23 +2453,63 @@ const Secoes = () => {
           </div>
 
           {/* Controles de edição fixos na parte inferior */}
-          {canManageSecoes && editMode && hasUnsavedChanges() && (
+          {canManageSecoes && (
+            (editMode && (isEditingDraft || hasUnsavedChanges())) || 
+            (isEditingDraft && !editMode)
+          ) && (
             <div className="edit-controls-bottom">
               <div className="edit-actions-inline">
-                <button 
-                  className="btn-outline btn-sm"
-                  onClick={() => handleUnsavedChanges('DISCARD_ONLY')}
-                  disabled={saving}
-                >
-                  Descartar
-                </button>
-                <button 
-                  className="btn-primary btn-sm"
-                  onClick={salvarSecoes}
-                  disabled={saving}
-                >
-                  {saving ? 'Salvando...' : 'Salvar'}
-                </button>
+                {editMode && hasUnsavedChanges() && (
+                  <button 
+                    className="btn-outline btn-sm"
+                    onClick={() => handleUnsavedChanges('DISCARD_ONLY')}
+                    disabled={saving}
+                  >
+                    Descartar
+                  </button>
+                )}
+                {isEditingDraft ? (
+                  // Se estamos editando um rascunho, mostrar opções de salvar e publicar (sempre visíveis)
+                  <>
+                    <button 
+                      className="btn-secondary btn-sm"
+                      onClick={editMode ? salvarSecoes : () => setEditMode(true)}
+                      disabled={saving}
+                      title={editMode ? "Salvar alterações no rascunho" : "Ativar modo de edição"}
+                    >
+                      {saving ? 'Salvando...' : (editMode ? 'Salvar' : 'Editar')}
+                    </button>
+                    <button 
+                      className="btn-primary btn-sm"
+                      onClick={() => publicarRascunho(capituloId, capitulo?.nome)}
+                      disabled={saving}
+                      title="Publicar este rascunho como capítulo principal"
+                    >
+                      {saving ? 'Publicando...' : 'Publicar Rascunho'}
+                    </button>
+                  </>
+                ) : (
+                  // Se estamos editando o capítulo principal, mostrar opções normais (só quando há mudanças)
+                  hasUnsavedChanges() && (
+                    <>
+                      <button 
+                        className="btn-secondary btn-sm"
+                        onClick={salvarComoRascunho}
+                        disabled={saving}
+                        title="Salvar alterações como rascunho"
+                      >
+                        {saving ? 'Salvando...' : 'Salvar como Rascunho'}
+                      </button>
+                      <button 
+                        className="btn-primary btn-sm"
+                        onClick={salvarSecoes}
+                        disabled={saving}
+                      >
+                        {saving ? 'Salvando...' : 'Salvar'}
+                      </button>
+                    </>
+                  )
+                )}
               </div>
             </div>
           )}
@@ -2252,6 +2590,18 @@ const Secoes = () => {
         message="Tem certeza que deseja descartar todas as alterações não salvas? Esta ação não pode ser desfeita."
         confirmText="Descartar"
         cancelText="Cancelar"
+      />
+
+      {/* Modal de confirmação para publicar rascunho */}
+      <PublishConfirmModal 
+        isOpen={showPublishModal}
+        onClose={() => {
+          setShowPublishModal(false);
+          setRascunhoParaPublicar(null);
+        }}
+        onConfirm={confirmarPublicacao}
+        rascunhoNome={rascunhoParaPublicar?.nome || ''}
+        loading={publishingRascunho}
       />
     </div>
   );

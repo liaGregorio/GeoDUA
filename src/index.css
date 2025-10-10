@@ -1223,6 +1223,21 @@ body.dark-mode .error-details {
   color: rgba(255, 255, 255, 0.7);
 }
 
+.dark-mode .edit-controls-bottom .btn-secondary {
+  color: #FF9A5A;
+  background: white;
+}
+
+.dark-mode .edit-controls-bottom .btn-secondary:hover:not(:disabled) {
+  background: #e9e9e9;
+  border-color: #e9e9e9;
+}
+
+.dark-mode .edit-controls-bottom .btn-secondary:disabled {
+  background: rgba(108, 117, 125, 0.3);
+  color: rgba(255, 255, 255, 0.4);
+}
+
 .dark-mode .cancel-button {
   background: #374151;
   border-color: #4b5563;
@@ -2375,6 +2390,29 @@ body.dark-mode .auth-copyright {
 .edit-controls-bottom .btn-primary:disabled {
   background: rgba(255, 145, 77, 0.4);
   color: rgba(255, 255, 255, 0.7);
+  cursor: not-allowed;
+}
+
+.edit-controls-bottom .btn-secondary {
+  background: white;
+  color: #FF914D;
+  border: 1px solid #dee2e6;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.edit-controls-bottom .btn-secondary:hover:not(:disabled) {
+  background: #f8f9fa;
+}
+
+.edit-controls-bottom .btn-secondary:disabled {
+  background: rgba(255, 255, 255, 0.6);
+  color: rgba(108, 117, 125, 0.5);
+  border-color: rgba(222, 226, 230, 0.5);
   cursor: not-allowed;
 }
 
@@ -5091,4 +5129,214 @@ body:not(.dark-mode) .secao-card-nova {
 .dark-mode .action-button:hover {
   background: #4b5563;
   color: #d1d5db;
+}
+
+/* Estilos para seção de rascunhos */
+.rascunhos-section {
+  margin: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  overflow: hidden;
+  border: 1px solid #e9ecef;
+}
+
+.rascunhos-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  background: #519271;
+  color: white;
+}
+
+.rascunhos-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.toggle-rascunhos-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.toggle-rascunhos-button:hover {
+  background: rgba(255,255,255,0.3);
+  transform: translateY(-1px);
+}
+
+.toggle-icon {
+  font-size: 0.8rem;
+  transition: transform 0.2s ease;
+}
+
+.toggle-icon.rotated {
+  transform: rotate(180deg);
+}
+
+.rascunhos-list {
+  padding: 0;
+}
+
+.rascunho-card {
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.2s ease;
+}
+
+.rascunho-card:last-child {
+  border-bottom: none;
+}
+
+.rascunho-card:hover {
+  background: #f8f9fa;
+}
+
+.rascunho-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+}
+
+.rascunho-info {
+  flex: 1;
+}
+
+.rascunho-info h4 {
+  margin: 0;
+  color: #333;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.rascunho-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.rascunho-action-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rascunho-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.rascunho-action-btn svg {
+  flex-shrink: 0;
+}
+
+.edit-btn {
+  background: #FF914D;
+  color: white;
+}
+
+.edit-btn:hover {
+  background: #e8690b;
+}
+
+.publish-btn {
+  background: #519271;
+  color: white;
+}
+
+.publish-btn:hover {
+  background: #3d7055;
+}
+
+.delete-btn {
+  background: #dc3545;
+  color: white;
+}
+
+.delete-btn:hover {
+  background: #c82333;
+}
+
+/* Dark mode para rascunhos */
+.dark-mode .rascunhos-section {
+  background: #1a1a1a;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  border-color: #404040;
+}
+
+.dark-mode .rascunhos-header {
+  background: #2d5742;
+}
+
+.dark-mode .edit-btn {
+  background: #FF9A5A;
+  color: white;
+}
+
+.dark-mode .edit-btn:hover {
+  background: #ff8c42;
+}
+
+.dark-mode .rascunho-card {
+  border-bottom-color: #4a5568;
+}
+
+.dark-mode .rascunho-card:hover {
+  background: #2d2d2d;
+}
+
+.dark-mode .rascunho-info h4 {
+  color: #e2e8f0;
+}
+
+
+
+.dark-mode .toggle-rascunhos-button {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.dark-mode .toggle-rascunhos-button:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+/* Indicador de rascunho */
+.capitulo-title-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.draft-indicator {
+  background: #ffc107;
+  color: #212529;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dark-mode .draft-indicator {
+  background: #f39c12;
+  color: #2c3e50;
 }

@@ -63,3 +63,18 @@ export const deleteSecao = async (id) => {
     throw new Error(error.response?.data?.error || 'Erro ao deletar seção');
   }
 };
+
+// Salvar múltiplas seções como rascunho
+export const salvarSecoesComoRascunho = async (idCapituloOriginal, secoes, idUsuario) => {
+  try {
+    const response = await api.post('/secoes/salvar-rascunho', {
+      id_capitulo_original: idCapituloOriginal,
+      secoes,
+      id_usuario: idUsuario
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao salvar rascunho:', error);
+    throw new Error(error.response?.data?.message || error.response?.data?.error || 'Erro ao salvar rascunho');
+  }
+};

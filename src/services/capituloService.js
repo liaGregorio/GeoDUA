@@ -86,3 +86,17 @@ export const createRascunho = async (idUsuario, idCapituloOriginal, nome) => {
     throw new Error(error.response?.data?.message || 'Erro ao criar rascunho');
   }
 };
+
+// Buscar rascunhos de um capítulo específico
+export const getRascunhosByCapitulo = async (idCapitulo, idUsuario) => {
+  try {
+    const response = await api.get(`/capitulos/${idCapitulo}/rascunhos/usuario/${idUsuario}`);
+    return response.data.data;
+  } catch (error) {
+    console.error('Erro ao buscar rascunhos do capítulo:', error);
+    if (error.response?.status === 404) {
+      return [];
+    }
+    throw new Error(error.response?.data?.message || 'Erro ao buscar rascunhos do capítulo');
+  }
+};
