@@ -6,10 +6,12 @@ import { getImagens, createImagem, deleteImagem, updateImagem, fileToBytea } fro
 import { getCapitulos, getRascunhosByCapitulo, deleteCapitulo } from '../services/capituloService';
 import { api } from '../services/api';
 import { processImageData } from '../utils/imageUtils';
+import { gerarResumo, isGroqConfigured, getSetupInstructions } from '../services/groqService';
 import DeleteSecaoModal from '../components/DeleteSecaoModal';
 import AddImagemModal from '../components/AddImagemModal';
 import ConfirmDiscardModal from '../components/ConfirmDiscardModal';
 import PublishConfirmModal from '../components/PublishConfirmModal';
+import GerarResumoModal from '../components/GerarResumoModal';
 import '../styles/secaoReorder.css';
 
 const Secoes = () => {
@@ -87,6 +89,13 @@ const Secoes = () => {
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [rascunhoParaPublicar, setRascunhoParaPublicar] = useState(null);
   const [publishingRascunho, setPublishingRascunho] = useState(false);
+
+  // Estados para geração de resumo com IA
+  const [showGerarResumoModal, setShowGerarResumoModal] = useState(false);
+  const [secaoParaResumo, setSecaoParaResumo] = useState(null);
+  
+  // Estado para controlar exibição de resumo vs conteúdo original
+  const [secoesComResumo, setSecoesComResumo] = useState({});
 
   // Verificar se o usuário pode gerenciar seções
   const canManageSecoes = user && user.tipoUsuario && user.tipoUsuario.id === 1;
@@ -487,6 +496,9 @@ const Secoes = () => {
   const renderSecaoContentUser = (secao) => {
     // Organizar todos os elementos da seção por ordem
     const items = [];
+    const mostrarResumo = secoesComResumo[secao.id];
+    const temResumo = secao.resumo && secao.resumo.trim() !== '';
+    const temConteudo = secao.original && secao.original.trim() !== '';
 
     // Sempre adicionar título e conteúdo original primeiro (se existirem)
     if (secao.titulo && secao.titulo.trim() !== '') {
@@ -497,7 +509,24 @@ const Secoes = () => {
       });
     }
 
-    if (secao.original && secao.original.trim() !== '') {
+    // Adicionar botão de alternância se houver resumo e conteúdo
+    if (temResumo && temConteudo) {
+      items.push({
+        type: 'toggle-resumo',
+        secaoId: secao.id,
+        mostrarResumo: mostrarResumo,
+        ordem: 0.5 // Entre título e conteúdo
+      });
+    }
+
+    // Adicionar conteúdo (original ou resumo) se existir
+    if (mostrarResumo && temResumo) {
+      items.push({
+        type: 'resumo',
+        content: secao.resumo,
+        ordem: 1 // Conteúdo sempre após título
+      });
+    } else if (temConteudo) {
       items.push({
         type: 'original',
         content: secao.original,
@@ -536,6 +565,43 @@ const Secoes = () => {
           <div key={`${item.type}-${index}`} className="secao-content-element">
             {item.type === 'titulo' && (
               <h3 className="secao-titulo-inline">{item.content}</h3>
+            )}
+            {item.type === 'toggle-resumo' && (
+              <div className="resumo-toggle-container">
+                <button 
+                  className="btn-toggle-resumo"
+                  onClick={() => toggleResumo(item.secaoId)}
+                  title={item.mostrarResumo ? 'Ver conteúdo completo' : 'Ver resumo'}
+                >
+                  {item.mostrarResumo ? (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      Ver conteúdo completo
+                    </>
+                  ) : (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14,2 14,8 20,8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                      </svg>
+                      Ver resumo
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+            {item.type === 'resumo' && (
+              <div className="secao-resumo-display">
+                <div className="resumo-badge">Resumo</div>
+                {item.content.split('\n').map((paragraph, pIndex) => (
+                  paragraph.trim() !== '' && <p key={pIndex}>{paragraph}</p>
+                ))}
+              </div>
             )}
             {item.type === 'original' && (
               <div className="secao-texto">
@@ -2016,6 +2082,57 @@ const Secoes = () => {
     setShowAddImagemModal(true);
   };
 
+  // Função para alternar entre resumo e conteúdo original
+  const toggleResumo = (secaoId) => {
+    setSecoesComResumo(prev => ({
+      ...prev,
+      [secaoId]: !prev[secaoId]
+    }));
+  };
+
+  // Funções para gerar resumo com IA
+  const handleOpenGerarResumo = (secao) => {
+    setSecaoParaResumo(secao);
+    setShowGerarResumoModal(true);
+  };
+
+  const handleGerarResumo = async (textoOriginal, promptPersonalizado = null) => {
+    if (!isGroqConfigured()) {
+      const instructions = getSetupInstructions();
+      alert(
+        '🔑 Chave API Groq não configurada!\n\n' +
+        'Para usar a geração de resumos com IA, siga estes passos:\n\n' +
+        Object.values(instructions.instructions).map((step, i) => `${i + 1}. ${step}`).join('\n') +
+        '\n\n✨ Benefícios:\n' +
+        instructions.benefits.map(b => `• ${b}`).join('\n')
+      );
+      return;
+    }
+
+    try {
+      showNotification('info', 'Gerando resumo com IA...');
+      
+      const resumoGerado = await gerarResumo(textoOriginal, promptPersonalizado);
+      
+      // Atualizar o resumo da seção (existente ou nova)
+      if (secaoParaResumo.isNew) {
+        // Se for uma nova seção
+        atualizarNovaSecao(secaoParaResumo.id, 'resumo', resumoGerado);
+      } else {
+        // Se for uma seção existente
+        handleUpdateSecao(secaoParaResumo.id, 'resumo', resumoGerado);
+      }
+      
+      showNotification('success', 'Resumo gerado com sucesso!');
+      setShowGerarResumoModal(false);
+      setSecaoParaResumo(null);
+      
+    } catch (error) {
+      console.error('Erro ao gerar resumo:', error);
+      showNotification('error', `Erro ao gerar resumo: ${error.message}`);
+    }
+  };
+
   return (
     <div className="secoes-container">
       {/* Notificação */}
@@ -2243,11 +2360,22 @@ const Secoes = () => {
                           </div>
 
                           <div className="secao-field optional">
-                            <label>Resumo</label>
+                            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span>Resumo</span>
+                              <button
+                                type="button"
+                                className="btn-generate-ai"
+                                onClick={() => handleOpenGerarResumo({ ...secao, isNew: true })}
+                                disabled={!secao.original || secao.original.trim().length === 0}
+                                title={!secao.original || secao.original.trim().length === 0 ? 'Adicione um conteúdo primeiro' : 'Gerar resumo com IA'}
+                              >
+                                Gerar com IA
+                              </button>
+                            </label>
                             <textarea
                               value={secao.resumo || ''}
                               onChange={(e) => atualizarNovaSecao(secao.id, 'resumo', e.target.value)}
-                              placeholder="Gerado por IA (sera implementado em breve)"
+                              placeholder="Digite um resumo ou gere automaticamente com IA"
                               className="secao-resumo-input"
                               rows="2"
                             />
@@ -2362,11 +2490,22 @@ const Secoes = () => {
                           </div>
 
                           <div className="secao-field optional">
-                            <label>Resumo</label>
+                            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span>Resumo</span>
+                              <button
+                                type="button"
+                                className="btn-generate-ai"
+                                onClick={() => handleOpenGerarResumo({ ...secao, isNew: false })}
+                                disabled={!getSecaoValue(secao.id, 'original') || getSecaoValue(secao.id, 'original').trim().length === 0}
+                                title={!getSecaoValue(secao.id, 'original') || getSecaoValue(secao.id, 'original').trim().length === 0 ? 'Adicione um conteúdo primeiro' : 'Gerar resumo com IA'}
+                              >
+                                Gerar com IA
+                              </button>
+                            </label>
                             <textarea
                               value={getSecaoValue(secao.id, 'resumo') || ''}
                               onChange={(e) => handleUpdateSecao(secao.id, 'resumo', e.target.value)}
-                              placeholder="Gerado por IA (sera implementado em breve)"
+                              placeholder="Digite um resumo ou gere automaticamente com IA"
                               className="secao-resumo-input"
                               rows="2"
                             />
@@ -2602,6 +2741,20 @@ const Secoes = () => {
         onConfirm={confirmarPublicacao}
         rascunhoNome={rascunhoParaPublicar?.nome || ''}
         loading={publishingRascunho}
+      />
+
+      {/* Modal de geração de resumo com IA */}
+      <GerarResumoModal
+        isOpen={showGerarResumoModal}
+        onClose={() => {
+          setShowGerarResumoModal(false);
+          setSecaoParaResumo(null);
+        }}
+        onGenerate={handleGerarResumo}
+        textoOriginal={secaoParaResumo?.isNew 
+          ? secaoParaResumo?.original 
+          : getSecaoValue(secaoParaResumo?.id, 'original')
+        }
       />
     </div>
   );

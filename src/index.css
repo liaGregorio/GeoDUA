@@ -5724,3 +5724,222 @@ body:not(.dark-mode) .secao-card-nova {
     font-size: 0.9rem;
   }
 }
+
+/* Estilos para o Modal de Geração de Resumo com IA */
+.alert-warning-resumo {
+  padding: 15px;
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  color: #856404;
+}
+
+.checkbox-container-resumo {
+  margin-bottom: 20px;
+}
+
+.checkbox-label-resumo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.checkbox-input-resumo {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.info-box-resumo {
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  border: none;
+}
+
+.info-box-resumo h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.info-box-resumo p {
+  margin: 0;
+  font-size: 13px;
+  white-space: pre-line;
+  line-height: 1.6;
+}
+
+.info-box-default {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.info-box-tip {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* Botão de gerar resumo com IA */
+.btn-generate-ai {
+  background: #FF914D;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-generate-ai:hover:not(:disabled) {
+  background: #e67c37;
+  transform: translateY(-1px);
+}
+
+.btn-generate-ai:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Modo Escuro - Modal de Resumo */
+.dark-mode .alert-warning-resumo {
+  background-color: #4a3a1a;
+  border-color: #8b6f00;
+  color: #ffd966;
+}
+
+.dark-mode .checkbox-label-resumo {
+  color: #e0e0e0;
+}
+
+.dark-mode .info-box-default {
+  background-color: #2d2d2d;
+  color: #d0d0d0;
+}
+
+.dark-mode .info-box-default h4 {
+  color: #e0e0e0;
+}
+
+.dark-mode .info-box-tip {
+  background-color: #1a3a1a;
+  color: #a5d6a7;
+}
+
+.dark-mode .info-box-tip strong {
+  color: #c8e6c9;
+}
+
+/* Botão de gerar resumo - modo escuro */
+.dark-mode .btn-generate-ai {
+  background: #FF9A5A;
+  color: white;
+}
+
+.dark-mode .btn-generate-ai:hover:not(:disabled) {
+  background: #e67c37;
+}
+
+/* Botão e estilo para alternar resumo */
+.resumo-toggle-container {
+  margin: 15px 0;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.btn-toggle-resumo {
+  background: #519271;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.btn-toggle-resumo:hover {
+  background: #3d7056;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(81, 146, 113, 0.3);
+}
+
+.btn-toggle-resumo svg {
+  flex-shrink: 0;
+}
+
+.secao-resumo-display {
+  padding: 20px;
+  background: #f0f7f4;
+  border-left: 4px solid #519271;
+  border-radius: 8px;
+  margin: 15px 0;
+  position: relative;
+}
+
+.secao-resumo-display p {
+  margin: 10px 0;
+  line-height: 1.8;
+  color: #2d4a3e;
+}
+
+.secao-resumo-display p:first-child {
+  margin-top: 0;
+}
+
+.secao-resumo-display p:last-child {
+  margin-bottom: 0;
+}
+
+.resumo-badge {
+  display: inline-block;
+  background: #519271;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+/* Modo escuro - Resumo */
+.dark-mode .btn-toggle-resumo {
+  background: #519271;
+  color: white;
+}
+
+.dark-mode .btn-toggle-resumo:hover {
+  background: #3d7056;
+  box-shadow: 0 2px 8px rgba(81, 146, 113, 0.5);
+}
+
+.dark-mode .secao-resumo-display {
+  background: #1a2a23;
+  border-left-color: #519271;
+}
+
+.dark-mode .secao-resumo-display p {
+  color: #c5d9ce;
+}
+
+.dark-mode .resumo-badge {
+  background: #519271;
+  color: white;
+}
