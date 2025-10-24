@@ -3128,8 +3128,9 @@ body.dark-mode .auth-copyright {
 .image-description-container {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 8px;
+  width: 100%;
 }
 
 .save-description-button {
@@ -3251,13 +3252,19 @@ body.dark-mode .auth-copyright {
 }
 
 .image-description-input {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 8px 10px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 12px;
-  margin-bottom: 8px;
   background: #fff;
+}
+
+/* Para inputs de descrição fora do container */
+.image-info > .image-description-input {
+  width: 100%;
+  margin-bottom: 8px;
 }
 
 .image-description-input:focus {
@@ -5812,6 +5819,52 @@ body:not(.dark-mode) .secao-card-nova {
   transform: none;
 }
 
+/* Botão de gerar descrição de imagem com IA */
+.btn-generate-description-ai {
+  background: #519271;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.btn-generate-description-ai svg {
+  flex-shrink: 0;
+}
+
+.btn-generate-description-ai:hover:not(:disabled) {
+  background: #3d7158;
+  transform: translateY(-1px);
+}
+
+.btn-generate-description-ai:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-generate-description-ai .spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Modo Escuro - Modal de Resumo */
 .dark-mode .alert-warning-resumo {
   background-color: #4a3a1a;
@@ -5849,6 +5902,16 @@ body:not(.dark-mode) .secao-card-nova {
 
 .dark-mode .btn-generate-ai:hover:not(:disabled) {
   background: #e67c37;
+}
+
+/* Botão de gerar descrição de imagem - modo escuro */
+.dark-mode .btn-generate-description-ai {
+  background: #66b38c;
+  color: white;
+}
+
+.dark-mode .btn-generate-description-ai:hover:not(:disabled) {
+  background: #519271;
 }
 
 /* Botão e estilo para alternar resumo */

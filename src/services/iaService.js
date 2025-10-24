@@ -277,5 +277,117 @@ export const getSetupInstructions = (provider = 'GROQ') => {
  */
 export const getDefaultPrompt = () => DEFAULT_PROMPT;
 
+/**
+ * Converte um arquivo de imagem para base64
+ * @param {File} file - Arquivo de imagem
+ * @returns {Promise<string>} - String base64 da imagem
+ */
+const fileToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      // Remover o prefixo "data:image/...;base64,"
+      const base64 = reader.result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = error => reject(error);
+  });
+};
+
+/**
+ * Gera uma descrição educacional para uma imagem usando Gemini
+ * @param {File|Blob} imageFile - Arquivo de imagem
+ * @returns {Promise<string>} - Descrição gerada
+ */
+export const gerarDescricaoImagem = async (imageFile) => {
+  if (!GEMINI_API_KEY) {
+    throw new Error('Chave API Google Gemini não configurada. Configure VITE_GEMINI_API_KEY no arquivo .env');
+  }
+
+  if (!imageFile) {
+    throw new Error('É necessário fornecer uma imagem');
+  }
+
+  try {
+    // Converter imagem para base64
+    const base64Image = await fileToBase64(imageFile);
+    
+    // Detectar tipo MIME da imagem
+    const mimeType = imageFile.type || 'image/jpeg';
+
+    const prompt = `Analise esta imagem e forneça uma descrição educacional clara e objetiva.
+A descrição deve:
+- Identificar os elementos principais da imagem
+- Ter foco educacional/científico
+- Ser em português do Brasil
+
+Retorne apenas a descrição, sem introduções ou explicações adicionais.`;
+
+    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: prompt },
+            {
+              inline_data: {
+                mime_type: mimeType,
+                data: base64Image
+              }
+            }
+          ]
+        }],
+        generationConfig: {
+          temperature: 0.4,
+          maxOutputTokens: 150,
+          topP: 0.95,
+          topK: 40
+        },
+        safetySettings: [
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_NONE"
+          },
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH",
+            threshold: "BLOCK_NONE"
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_NONE"
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_NONE"
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        `Erro na API Gemini: ${response.status} - ${errorData.error?.message || 'Erro desconhecido'}`
+      );
+    }
+
+    const data = await response.json();
+    
+    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+      throw new Error('Resposta inválida da API Gemini');
+    }
+
+    return data.candidates[0].content.parts[0].text.trim();
+
+  } catch (error) {
+    console.error('Erro ao gerar descrição da imagem:', error);
+    throw error;
+  }
+};
+
 // Manter compatibilidade com código antigo
 export const isGroqConfigured = () => isProviderConfigured('GROQ');

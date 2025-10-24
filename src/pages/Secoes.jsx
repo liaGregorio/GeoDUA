@@ -6,7 +6,7 @@ import { getImagens, createImagem, deleteImagem, updateImagem, fileToBytea } fro
 import { getCapitulos, getRascunhosByCapitulo, deleteCapitulo } from '../services/capituloService';
 import { api } from '../services/api';
 import { processImageData } from '../utils/imageUtils';
-import { gerarResumo, isProviderConfigured, getSetupInstructions } from '../services/iaService';
+import { gerarResumo, isProviderConfigured, getSetupInstructions, gerarDescricaoImagem } from '../services/iaService';
 import DeleteSecaoModal from '../components/DeleteSecaoModal';
 import AddImagemModal from '../components/AddImagemModal';
 import ConfirmDiscardModal from '../components/ConfirmDiscardModal';
@@ -99,6 +99,9 @@ const Secoes = () => {
   const [providerUsado, setProviderUsado] = useState('GROQ');
   const [promptUsado, setPromptUsado] = useState(null);
   const [feedbackResumo, setFeedbackResumo] = useState(null);
+  
+  // Estados para geração de descrição de imagem com IA
+  const [gerandoDescricao, setGerandoDescricao] = useState({});
   
   // Estado para controlar exibição de resumo vs conteúdo original
   const [secoesComResumo, setSecoesComResumo] = useState({});
@@ -884,20 +887,45 @@ const Secoes = () => {
                     </button>
                   </div>
                   <div className="image-info">
-                    <input
-                      type="text"
-                      value={imagem.descricao}
-                      onChange={(e) => {
-                        setImagensTemporarias(prev => ({
-                          ...prev,
-                          [`existing-${secao.id}`]: prev[`existing-${secao.id}`].map(img => 
-                            img.id === imagem.id ? { ...img, descricao: e.target.value } : img
-                          )
-                        }));
-                      }}
-                      placeholder="Descrição da imagem"
-                      className="image-description-input"
-                    />
+                    <div className="image-description-container">
+                      <input
+                        type="text"
+                        value={imagem.descricao}
+                        onChange={(e) => {
+                          setImagensTemporarias(prev => ({
+                            ...prev,
+                            [`existing-${secao.id}`]: prev[`existing-${secao.id}`].map(img => 
+                              img.id === imagem.id ? { ...img, descricao: e.target.value } : img
+                            )
+                          }));
+                        }}
+                        placeholder="Descrição da imagem"
+                        className="image-description-input"
+                      />
+                      <button
+                        type="button"
+                        className="btn-generate-description-ai"
+                        onClick={() => gerarDescricaoImagemComIA(imagem.id, imagem.file)}
+                        disabled={gerandoDescricao[`img-${imagem.id}`]}
+                        title="Gerar descrição com IA"
+                      >
+                        {gerandoDescricao[`img-${imagem.id}`] ? (
+                          <>
+                            <svg className="spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <circle cx="12" cy="12" r="10"></circle>
+                            </svg>
+                            Gerando...
+                          </>
+                        ) : (
+                          <>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                            </svg>
+                            IA
+                          </>
+                        )}
+                      </button>
+                    </div>
                     <div className="image-order">
                       <span>Ordem: {imagem.ordem}</span>
                       {indexVisivel > 0 && (
@@ -1024,6 +1052,59 @@ const Secoes = () => {
     }
   };
 
+  // Função para gerar descrição de imagem com IA
+  const gerarDescricaoImagemComIA = async (imagemId, imageFile, imageUrl = null) => {
+    const key = `img-${imagemId}`;
+    
+    try {
+      setGerandoDescricao(prev => ({ ...prev, [key]: true }));
+      
+      let fileToAnalyze = imageFile;
+      
+      // Se não temos o arquivo mas temos a URL (imagem já salva), buscar a imagem
+      if (!fileToAnalyze && imageUrl) {
+        try {
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          fileToAnalyze = new File([blob], 'image.jpg', { type: blob.type });
+        } catch (fetchError) {
+          console.error('Erro ao buscar imagem:', fetchError);
+          throw new Error('Não foi possível carregar a imagem para análise');
+        }
+      }
+      
+      if (!fileToAnalyze) {
+        throw new Error('Imagem não disponível para análise');
+      }
+      
+      const descricao = await gerarDescricaoImagem(fileToAnalyze);
+      
+      // Verificar se é imagem temporária
+      if (imagemId.toString().startsWith('temp-')) {
+        // Atualizar descrição de imagem temporária (pode estar em qualquer secaoId ou existing-secaoId)
+        setImagensTemporarias(prev => {
+          const updated = {};
+          Object.keys(prev).forEach(secaoKey => {
+            updated[secaoKey] = prev[secaoKey].map(img => 
+              img.id === imagemId ? { ...img, descricao } : img
+            );
+          });
+          return updated;
+        });
+      } else {
+        // Atualizar descrição de imagem existente
+        atualizarDescricaoImagem(imagemId, descricao);
+      }
+      
+      showNotification('success', 'Descrição gerada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao gerar descrição:', error);
+      showNotification('error', error.message || 'Erro ao gerar descrição da imagem');
+    } finally {
+      setGerandoDescricao(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
   // Função para renderizar imagem com controles (para seções existentes)
   const renderImageWithControls = (imagem, secaoId) => {
     const processedImage = processImageData(imagem);
@@ -1080,6 +1161,29 @@ const Secoes = () => {
               placeholder="Descrição da imagem"
               className="image-description-input"
             />
+            <button
+              type="button"
+              className="btn-generate-description-ai"
+              onClick={() => gerarDescricaoImagemComIA(imagem.id, null, processedImage.src)}
+              disabled={gerandoDescricao[`img-${imagem.id}`]}
+              title="Gerar descrição com IA"
+            >
+              {gerandoDescricao[`img-${imagem.id}`] ? (
+                <>
+                  <svg className="spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                  </svg>
+                  Gerando...
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                  </svg>
+                  IA
+                </>
+              )}
+            </button>
             {foiEditada && (
               <button
                 className="save-description-button"
@@ -1175,20 +1279,45 @@ const Secoes = () => {
                 </button>
               </div>
               <div className="image-info">
-                <input
-                  type="text"
-                  value={imagem.descricao}
-                  onChange={(e) => {
-                    setImagensTemporarias(prev => ({
-                      ...prev,
-                      [secaoId]: prev[secaoId].map(img => 
-                        img.id === imagem.id ? { ...img, descricao: e.target.value } : img
-                      )
-                    }));
-                  }}
-                  placeholder="Descrição da imagem"
-                  className="image-description-input"
-                />
+                <div className="image-description-container">
+                  <input
+                    type="text"
+                    value={imagem.descricao}
+                    onChange={(e) => {
+                      setImagensTemporarias(prev => ({
+                        ...prev,
+                        [secaoId]: prev[secaoId].map(img => 
+                          img.id === imagem.id ? { ...img, descricao: e.target.value } : img
+                        )
+                      }));
+                    }}
+                    placeholder="Descrição da imagem"
+                    className="image-description-input"
+                  />
+                  <button
+                    type="button"
+                    className="btn-generate-description-ai"
+                    onClick={() => gerarDescricaoImagemComIA(imagem.id, imagem.file)}
+                    disabled={gerandoDescricao[`img-${imagem.id}`]}
+                    title="Gerar descrição com IA"
+                  >
+                    {gerandoDescricao[`img-${imagem.id}`] ? (
+                      <>
+                        <svg className="spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                        Gerando...
+                      </>
+                    ) : (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                        </svg>
+                        IA
+                      </>
+                    )}
+                  </button>
+                </div>
                 <div className="image-order">
                   <span>Posição: {imagem.ordem}</span>
                   {index > 0 && (
