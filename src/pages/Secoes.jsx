@@ -2360,8 +2360,8 @@ const Secoes = () => {
                           </div>
 
                           <div className="secao-field optional">
-                            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span>Resumo</span>
+                            <div className="resumo-header-container">
+                              <label>Resumo</label>
                               <button
                                 type="button"
                                 className="btn-generate-ai"
@@ -2371,7 +2371,7 @@ const Secoes = () => {
                               >
                                 Gerar com IA
                               </button>
-                            </label>
+                            </div>
                             <textarea
                               value={secao.resumo || ''}
                               onChange={(e) => atualizarNovaSecao(secao.id, 'resumo', e.target.value)}
@@ -2490,8 +2490,8 @@ const Secoes = () => {
                           </div>
 
                           <div className="secao-field optional">
-                            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span>Resumo</span>
+                            <div className="resumo-header-container">
+                              <label>Resumo</label>
                               <button
                                 type="button"
                                 className="btn-generate-ai"
@@ -2501,7 +2501,7 @@ const Secoes = () => {
                               >
                                 Gerar com IA
                               </button>
-                            </label>
+                            </div>
                             <textarea
                               value={getSecaoValue(secao.id, 'resumo') || ''}
                               onChange={(e) => handleUpdateSecao(secao.id, 'resumo', e.target.value)}
