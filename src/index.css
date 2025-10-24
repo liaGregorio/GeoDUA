@@ -5906,7 +5906,7 @@ body:not(.dark-mode) .secao-card-nova {
 
 /* Botão de gerar descrição de imagem - modo escuro */
 .dark-mode .btn-generate-description-ai {
-  background: #66b38c;
+  background: #3d7056;
   color: white;
 }
 

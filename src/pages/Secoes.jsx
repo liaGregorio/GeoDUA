@@ -13,6 +13,7 @@ import ConfirmDiscardModal from '../components/ConfirmDiscardModal';
 import PublishConfirmModal from '../components/PublishConfirmModal';
 import GerarResumoModal from '../components/GerarResumoModal';
 import ResumoPreviewModal from '../components/ResumoPreviewModal';
+import DescricaoPreviewModal from '../components/DescricaoPreviewModal';
 import '../styles/secaoReorder.css';
 
 const Secoes = () => {
@@ -102,6 +103,10 @@ const Secoes = () => {
   
   // Estados para geração de descrição de imagem com IA
   const [gerandoDescricao, setGerandoDescricao] = useState({});
+  const [showDescricaoPreview, setShowDescricaoPreview] = useState(false);
+  const [descricaoGerada, setDescricaoGerada] = useState('');
+  const [imagemParaDescricao, setImagemParaDescricao] = useState(null);
+  const [isRegeneratingDescricao, setIsRegeneratingDescricao] = useState(false);
   
   // Estado para controlar exibição de resumo vs conteúdo original
   const [secoesComResumo, setSecoesComResumo] = useState({});
@@ -1079,24 +1084,11 @@ const Secoes = () => {
       
       const descricao = await gerarDescricaoImagem(fileToAnalyze);
       
-      // Verificar se é imagem temporária
-      if (imagemId.toString().startsWith('temp-')) {
-        // Atualizar descrição de imagem temporária (pode estar em qualquer secaoId ou existing-secaoId)
-        setImagensTemporarias(prev => {
-          const updated = {};
-          Object.keys(prev).forEach(secaoKey => {
-            updated[secaoKey] = prev[secaoKey].map(img => 
-              img.id === imagemId ? { ...img, descricao } : img
-            );
-          });
-          return updated;
-        });
-      } else {
-        // Atualizar descrição de imagem existente
-        atualizarDescricaoImagem(imagemId, descricao);
-      }
+      // Armazenar a descrição gerada e abrir o modal para revisão
+      setDescricaoGerada(descricao);
+      setImagemParaDescricao({ imagemId, imageFile, imageUrl });
+      setShowDescricaoPreview(true);
       
-      showNotification('success', 'Descrição gerada com sucesso!');
     } catch (error) {
       console.error('Erro ao gerar descrição:', error);
       showNotification('error', error.message || 'Erro ao gerar descrição da imagem');
@@ -2359,6 +2351,66 @@ const Secoes = () => {
     setShowGerarResumoModal(true);
   };
 
+  // Funções para gerenciar preview de descrição de imagem
+  const handleAcceptDescricao = () => {
+    if (!imagemParaDescricao) return;
+
+    const { imagemId } = imagemParaDescricao;
+
+    // Verificar se é imagem temporária
+    if (imagemId.toString().startsWith('temp-')) {
+      // Atualizar descrição de imagem temporária
+      setImagensTemporarias(prev => {
+        const updated = {};
+        Object.keys(prev).forEach(secaoKey => {
+          updated[secaoKey] = prev[secaoKey].map(img => 
+            img.id === imagemId ? { ...img, descricao: descricaoGerada } : img
+          );
+        });
+        return updated;
+      });
+    } else {
+      // Atualizar descrição de imagem existente
+      atualizarDescricaoImagem(imagemId, descricaoGerada);
+    }
+
+    showNotification('success', 'Descrição aplicada com sucesso!');
+    setShowDescricaoPreview(false);
+    setDescricaoGerada('');
+    setImagemParaDescricao(null);
+  };
+
+  const handleRegenerateDescricao = async () => {
+    if (!imagemParaDescricao) return;
+
+    const { imagemId, imageFile, imageUrl } = imagemParaDescricao;
+    setIsRegeneratingDescricao(true);
+
+    try {
+      let fileToAnalyze = imageFile;
+      
+      // Se não temos o arquivo mas temos a URL, buscar a imagem
+      if (!fileToAnalyze && imageUrl) {
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        fileToAnalyze = new File([blob], 'image.jpg', { type: blob.type });
+      }
+      
+      if (!fileToAnalyze) {
+        throw new Error('Imagem não disponível para análise');
+      }
+      
+      const novaDescricao = await gerarDescricaoImagem(fileToAnalyze);
+      setDescricaoGerada(novaDescricao);
+      
+    } catch (error) {
+      console.error('Erro ao regenerar descrição:', error);
+      showNotification('error', 'Erro ao gerar nova descrição');
+    } finally {
+      setIsRegeneratingDescricao(false);
+    }
+  };
+
   return (
     <div className="secoes-container">
       {/* Notificação */}
@@ -2995,6 +3047,20 @@ const Secoes = () => {
         onAccept={handleAcceptResumo}
         onRegenerate={handleRegenerateResumo}
         isRegenerating={false}
+      />
+
+      {/* Modal de preview de descrição de imagem */}
+      <DescricaoPreviewModal
+        isOpen={showDescricaoPreview}
+        onClose={() => {
+          setShowDescricaoPreview(false);
+          setDescricaoGerada('');
+          setImagemParaDescricao(null);
+        }}
+        descricaoGerada={descricaoGerada}
+        onAccept={handleAcceptDescricao}
+        onRegenerate={handleRegenerateDescricao}
+        isRegenerating={isRegeneratingDescricao}
       />
     </div>
   );
