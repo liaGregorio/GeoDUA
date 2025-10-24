@@ -30,7 +30,6 @@ const DEFAULT_PROMPT = `Você é um assistente especializado em criar resumos ed
 Analise o texto fornecido e crie um resumo objetivo que:
 - Capture os pontos principais
 - Use linguagem clara e acessível
-- Tenha entre 2-4 frases
 - Seja direto e informativo
 - Mantenha o tom educacional
 
