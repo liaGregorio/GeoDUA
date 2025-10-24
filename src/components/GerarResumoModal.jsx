@@ -1,26 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { AI_PROVIDERS, getAvailableProviders, getDefaultPrompt } from '../services/iaService';
 
 const GerarResumoModal = ({ isOpen, onClose, onGenerate, textoOriginal }) => {
+  const [selectedProvider, setSelectedProvider] = useState('GROQ');
   const [useCustomPrompt, setUseCustomPrompt] = useState(false);
   const [customPrompt, setCustomPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [availableProviders, setAvailableProviders] = useState([]);
 
-  const promptPadrao = `Você é um assistente especializado em criar resumos educacionais claros e concisos.
-Analise o texto fornecido e crie um resumo objetivo que:
-- Capture os pontos principais
-- Use linguagem clara e acessível
-- Tenha entre 2-4 frases
-- Seja direto e informativo
-- Mantenha o tom educacional
+  const promptPadrao = getDefaultPrompt();
 
-Retorne apenas o resumo, sem introduções ou explicações adicionais.`;
+  useEffect(() => {
+    // Carregar providers disponíveis ao abrir o modal
+    if (isOpen) {
+      const providers = getAvailableProviders();
+      setAvailableProviders(providers);
+      
+      // Selecionar o primeiro provider configurado
+      const configured = providers.find(p => p.configured);
+      if (configured) {
+        setSelectedProvider(configured.id);
+      }
+    }
+  }, [isOpen]);
 
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
       const prompt = useCustomPrompt ? customPrompt : null;
-      await onGenerate(textoOriginal, prompt);
-      onClose();
+      await onGenerate(textoOriginal, selectedProvider, prompt);
+      // Não fechar mais aqui - o preview que vai decidir
     } catch (error) {
       console.error('Erro ao gerar resumo:', error);
     } finally {
@@ -38,9 +47,12 @@ Retorne apenas o resumo, sem introduções ou explicações adicionais.`;
 
   if (!isOpen) return null;
 
+  const selectedProviderInfo = AI_PROVIDERS[selectedProvider];
+  const hasConfiguredProvider = availableProviders.some(p => p.configured);
+
   return (
     <div className="modal-overlay">
-      <div className="modal-content" style={{ maxWidth: '600px' }}>
+      <div className="modal-content" style={{ maxWidth: '650px' }}>
         <div className="modal-header">
           <h3>Gerar Resumo com IA</h3>
           <button 
@@ -57,8 +69,48 @@ Retorne apenas o resumo, sem introduções ou explicações adicionais.`;
             <div className="alert-warning-resumo">
               <strong>Atenção:</strong> É necessário adicionar um conteúdo na seção antes de gerar o resumo.
             </div>
+          ) : !hasConfiguredProvider ? (
+            <div className="alert-warning-resumo">
+              <strong>Nenhuma IA configurada!</strong>
+              <p style={{ marginTop: '10px', marginBottom: '0' }}>
+                Configure pelo menos uma chave de API (Groq ou Gemini) no arquivo .env para usar esta funcionalidade.
+              </p>
+            </div>
           ) : (
             <>
+              {/* Seletor de Provider */}
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label htmlFor="ai-provider">
+                  <strong>Escolha a IA:</strong>
+                </label>
+                <select
+                  id="ai-provider"
+                  value={selectedProvider}
+                  onChange={(e) => setSelectedProvider(e.target.value)}
+                  disabled={isGenerating}
+                  className="provider-select"
+                  style={{ 
+                    width: '100%', 
+                    padding: '10px',
+                    borderRadius: '6px',
+                    border: '1px solid #d1d5db',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {availableProviders.map(provider => (
+                    <option 
+                      key={provider.id} 
+                      value={provider.id}
+                      disabled={!provider.configured}
+                    >
+                      {provider.name} - {provider.description}
+                      {!provider.configured && ' (não configurado)'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="checkbox-container-resumo">
                 <label className="checkbox-label-resumo">
                   <input
@@ -84,7 +136,8 @@ Retorne apenas o resumo, sem introduções ou explicações adicionais.`;
                   <label htmlFor="customPrompt">
                     Prompt Personalizado:
                     <small style={{ display: 'block', marginTop: '5px', opacity: 0.8 }}>
-                      Descreva como você quer que o resumo seja gerado
+                      Descreva como você quer que o resumo seja gerado. 
+                      O sistema sempre adiciona: "Retorne apenas o resumo, sem introduções ou explicações adicionais."
                     </small>
                   </label>
                   <textarea
@@ -100,7 +153,7 @@ Retorne apenas o resumo, sem introduções ou explicações adicionais.`;
               )}
 
               <div className="info-box-resumo info-box-tip">
-                <strong>Dica:</strong> O resumo será gerado baseado no conteúdo da seção usando IA (Groq - Llama 3.3 70B)
+                <strong>Dica:</strong> O resumo será gerado e você poderá revisar antes de aceitar.
               </div>
             </>
           )}
@@ -119,7 +172,7 @@ Retorne apenas o resumo, sem introduções ou explicações adicionais.`;
             type="button" 
             className="btn-primary" 
             onClick={handleGenerate}
-            disabled={isGenerating || !textoOriginal || textoOriginal.trim().length === 0}
+            disabled={isGenerating || !textoOriginal || textoOriginal.trim().length === 0 || !hasConfiguredProvider}
           >
             {isGenerating ? 'Gerando...' : 'Gerar Resumo'}
           </button>

@@ -6,12 +6,13 @@ import { getImagens, createImagem, deleteImagem, updateImagem, fileToBytea } fro
 import { getCapitulos, getRascunhosByCapitulo, deleteCapitulo } from '../services/capituloService';
 import { api } from '../services/api';
 import { processImageData } from '../utils/imageUtils';
-import { gerarResumo, isGroqConfigured, getSetupInstructions } from '../services/groqService';
+import { gerarResumo, isProviderConfigured, getSetupInstructions } from '../services/iaService';
 import DeleteSecaoModal from '../components/DeleteSecaoModal';
 import AddImagemModal from '../components/AddImagemModal';
 import ConfirmDiscardModal from '../components/ConfirmDiscardModal';
 import PublishConfirmModal from '../components/PublishConfirmModal';
 import GerarResumoModal from '../components/GerarResumoModal';
+import ResumoPreviewModal from '../components/ResumoPreviewModal';
 import '../styles/secaoReorder.css';
 
 const Secoes = () => {
@@ -93,6 +94,11 @@ const Secoes = () => {
   // Estados para geração de resumo com IA
   const [showGerarResumoModal, setShowGerarResumoModal] = useState(false);
   const [secaoParaResumo, setSecaoParaResumo] = useState(null);
+  const [showResumoPreview, setShowResumoPreview] = useState(false);
+  const [resumoGerado, setResumoGerado] = useState('');
+  const [providerUsado, setProviderUsado] = useState('GROQ');
+  const [promptUsado, setPromptUsado] = useState(null);
+  const [feedbackResumo, setFeedbackResumo] = useState(null);
   
   // Estado para controlar exibição de resumo vs conteúdo original
   const [secoesComResumo, setSecoesComResumo] = useState({});
@@ -366,21 +372,37 @@ const Secoes = () => {
     }
   };
 
-  const handleUpdateSecao = (secaoId, field, value) => {
+  const handleUpdateSecao = (secaoId, field, value, promptDireto = null, feedbackDireto = null) => {
     // Encontrar a seção existente
     const secaoExistenteIndex = secoesEditadas.findIndex(s => s.id === secaoId);
     
     if (secaoExistenteIndex >= 0) {
       // Atualizar seção já em edição
-      setSecoesEditadas(prev => prev.map(secao => 
-        secao.id === secaoId ? { ...secao, [field]: value } : secao
-      ));
+      setSecoesEditadas(prev => prev.map(secao => {
+        if (secao.id === secaoId) {
+          const updated = { ...secao, [field]: value };
+          
+          // Se estiver atualizando o resumo e temos feedback/prompt da IA, adicionar
+          if (field === 'resumo' && (feedbackDireto !== null || feedbackResumo !== null)) {
+            updated.prompt = promptDireto || promptUsado;
+            updated.feedback = feedbackDireto !== null ? feedbackDireto : feedbackResumo;
+            console.log('Adicionando prompt e feedback à seção existente:', { 
+              prompt: updated.prompt, 
+              feedback: updated.feedback,
+              feedbackDireto,
+              feedbackResumo 
+            });
+          }
+          
+          return updated;
+        }
+        return secao;
+      }));
     } else {
       // Buscar a seção original para preservar todos os campos existentes
       const secaoOriginal = secoes.find(s => s.id === secaoId);
       
-      // Adicionar nova seção à lista de editadas preservando os campos originais
-      setSecoesEditadas(prev => [...prev, {
+      const updatedSecao = {
         id: secaoId,
         titulo: secaoOriginal?.titulo || '',
         resumo: secaoOriginal?.resumo || '',
@@ -388,8 +410,25 @@ const Secoes = () => {
         link3d: secaoOriginal?.link3d || '',
         ordem3d: secaoOriginal?.ordem3d || 1,
         ordem: secaoOriginal?.ordem || 0,
+        prompt: secaoOriginal?.prompt || null,
+        feedback: secaoOriginal?.feedback || null,
         [field]: value // Sobrescreve o campo sendo editado
-      }]);
+      };
+      
+      // Se estiver atualizando o resumo e temos feedback/prompt da IA, adicionar
+      if (field === 'resumo' && (feedbackDireto !== null || feedbackResumo !== null)) {
+        updatedSecao.prompt = promptDireto || promptUsado;
+        updatedSecao.feedback = feedbackDireto !== null ? feedbackDireto : feedbackResumo;
+        console.log('Adicionando prompt e feedback à nova entrada:', { 
+          prompt: updatedSecao.prompt, 
+          feedback: updatedSecao.feedback,
+          feedbackDireto,
+          feedbackResumo 
+        });
+      }
+      
+      // Adicionar nova seção à lista de editadas preservando os campos originais
+      setSecoesEditadas(prev => [...prev, updatedSecao]);
     }
   };
 
@@ -1409,10 +1448,27 @@ const Secoes = () => {
   };
 
   // Função específica para atualizar novas seções
-  const atualizarNovaSecao = (secaoId, campo, valor) => {
-    setNovasSecoes(prev => prev.map(secao => 
-      secao.id === secaoId ? { ...secao, [campo]: valor } : secao
-    ));
+  const atualizarNovaSecao = (secaoId, campo, valor, promptDireto = null, feedbackDireto = null) => {
+    setNovasSecoes(prev => prev.map(secao => {
+      if (secao.id === secaoId) {
+        const updated = { ...secao, [campo]: valor };
+        
+        // Se estiver atualizando o resumo e temos feedback/prompt da IA, adicionar
+        if (campo === 'resumo' && (feedbackDireto !== null || feedbackResumo !== null)) {
+          updated.prompt = promptDireto || promptUsado;
+          updated.feedback = feedbackDireto !== null ? feedbackDireto : feedbackResumo;
+          console.log('Adicionando prompt e feedback à nova seção:', { 
+            prompt: updated.prompt, 
+            feedback: updated.feedback,
+            feedbackDireto,
+            feedbackResumo 
+          });
+        }
+        
+        return updated;
+      }
+      return secao;
+    }));
   };
 
   // Função específica para remover novas seções
@@ -1680,16 +1736,19 @@ const Secoes = () => {
           const originalMudou = secaoOriginal.original !== secaoEditada.original;
           const link3dMudou = secaoOriginal.link3d !== secaoEditada.link3d;
           const ordem3dMudou = secaoOriginal.ordem3d !== secaoEditada.ordem3d;
+          const promptMudou = secaoOriginal.prompt !== secaoEditada.prompt;
+          const feedbackMudou = secaoOriginal.feedback !== secaoEditada.feedback;
           
           // Comparação mais rigorosa da ordem
           const ordemOriginal = Number(secaoOriginal.ordem);
           const ordemEditada = Number(secaoEditada.ordem);
           const ordemMudou = ordemOriginal !== ordemEditada;
           
-          const temMudancas = tituloMudou || resumoMudou || originalMudou || link3dMudou || ordem3dMudou || ordemMudou;
+          const temMudancas = tituloMudou || resumoMudou || originalMudou || link3dMudou || ordem3dMudou || ordemMudou || promptMudou || feedbackMudou;
           
           if (temMudancas) {
             try {
+              console.log('Salvando seção com dados:', secaoEditada);
               await updateSecao(secaoEditada.id, secaoEditada);
               secoesModificadas++;  // Usando a variável renomeada
             } catch (updateError) {
@@ -1773,6 +1832,8 @@ const Secoes = () => {
       // Criar novas seções com suas imagens
       for (const novaSecao of novasSecoes) {
         const { id, isNew, ...secaoData } = novaSecao;
+        
+        console.log('Criando nova seção com dados:', secaoData);
         
         // Criar a seção primeiro
         const secaoCriada = await createSecao(secaoData);
@@ -2094,15 +2155,16 @@ const Secoes = () => {
   const handleOpenGerarResumo = (secao) => {
     setSecaoParaResumo(secao);
     setShowGerarResumoModal(true);
+    setFeedbackResumo(null);
   };
 
-  const handleGerarResumo = async (textoOriginal, promptPersonalizado = null) => {
-    if (!isGroqConfigured()) {
-      const instructions = getSetupInstructions();
+  const handleGerarResumo = async (textoOriginal, provider, promptPersonalizado = null) => {
+    if (!isProviderConfigured(provider)) {
+      const instructions = getSetupInstructions(provider);
       alert(
-        '🔑 Chave API Groq não configurada!\n\n' +
+        `🔑 ${provider} não configurado!\n\n` +
         'Para usar a geração de resumos com IA, siga estes passos:\n\n' +
-        Object.values(instructions.instructions).map((step, i) => `${i + 1}. ${step}`).join('\n') +
+        instructions.instructions.map((step, i) => `${i + 1}. ${step}`).join('\n') +
         '\n\n✨ Benefícios:\n' +
         instructions.benefits.map(b => `• ${b}`).join('\n')
       );
@@ -2110,27 +2172,62 @@ const Secoes = () => {
     }
 
     try {
-      showNotification('info', 'Gerando resumo com IA...');
+      showNotification('info', `Gerando resumo com ${provider}...`);
       
-      const resumoGerado = await gerarResumo(textoOriginal, promptPersonalizado);
+      // Adicionar sempre a instrução final ao prompt
+      const promptFinal = promptPersonalizado 
+        ? `${promptPersonalizado}\n\nRetorne apenas o resumo, sem introduções ou explicações adicionais.`
+        : null;
       
-      // Atualizar o resumo da seção (existente ou nova)
-      if (secaoParaResumo.isNew) {
-        // Se for uma nova seção
-        atualizarNovaSecao(secaoParaResumo.id, 'resumo', resumoGerado);
-      } else {
-        // Se for uma seção existente
-        handleUpdateSecao(secaoParaResumo.id, 'resumo', resumoGerado);
-      }
+      const resumo = await gerarResumo(textoOriginal, provider, promptFinal);
       
-      showNotification('success', 'Resumo gerado com sucesso!');
+      // Armazenar o resumo gerado e informações para o preview
+      setResumoGerado(resumo);
+      setProviderUsado(provider);
+      setPromptUsado(promptFinal);
+      
+      // Fechar modal de configuração e abrir modal de preview
       setShowGerarResumoModal(false);
-      setSecaoParaResumo(null);
+      setShowResumoPreview(true);
+      
+      showNotification('success', 'Resumo gerado! Revise antes de aceitar.');
       
     } catch (error) {
       console.error('Erro ao gerar resumo:', error);
       showNotification('error', `Erro ao gerar resumo: ${error.message}`);
     }
+  };
+
+  const handleAcceptResumo = (userFeedback) => {
+    console.log('handleAcceptResumo chamado com:', { userFeedback, promptUsado, resumoGerado: resumoGerado?.substring(0, 50) });
+    
+    // Salvar o feedback do usuário (true = gostou, false = não gostou, null = não respondeu)
+    setFeedbackResumo(userFeedback);
+    
+    // Atualizar o resumo da seção (existente ou nova) PASSANDO OS VALORES DIRETAMENTE
+    if (secaoParaResumo.isNew) {
+      atualizarNovaSecao(secaoParaResumo.id, 'resumo', resumoGerado, promptUsado, userFeedback);
+    } else {
+      handleUpdateSecao(secaoParaResumo.id, 'resumo', resumoGerado, promptUsado, userFeedback);
+    }
+    
+    showNotification('success', 'Resumo adicionado com sucesso!');
+    
+    // Fechar modais e limpar estados
+    setShowResumoPreview(false);
+    setSecaoParaResumo(null);
+    setResumoGerado('');
+    setProviderUsado('GROQ');
+    setPromptUsado(null);
+  };
+
+  const handleRegenerateResumo = () => {
+    // Usuário não gostou do resumo (feedback negativo)
+    setFeedbackResumo(false);
+    
+    // Voltar para o modal de configuração
+    setShowResumoPreview(false);
+    setShowGerarResumoModal(true);
   };
 
   return (
@@ -2755,6 +2852,20 @@ const Secoes = () => {
           ? secaoParaResumo?.original 
           : getSecaoValue(secaoParaResumo?.id, 'original')
         }
+      />
+
+      {/* Modal de preview do resumo gerado */}
+      <ResumoPreviewModal
+        isOpen={showResumoPreview}
+        onClose={() => {
+          setShowResumoPreview(false);
+          setResumoGerado('');
+        }}
+        resumoGerado={resumoGerado}
+        provider={providerUsado}
+        onAccept={handleAcceptResumo}
+        onRegenerate={handleRegenerateResumo}
+        isRegenerating={false}
       />
     </div>
   );
