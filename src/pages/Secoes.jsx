@@ -7,6 +7,8 @@ import { getCapitulos, getRascunhosByCapitulo, deleteCapitulo } from '../service
 import { api } from '../services/api';
 import { processImageData } from '../utils/imageUtils';
 import { gerarResumo, isProviderConfigured, getSetupInstructions, gerarDescricaoImagem } from '../services/iaService';
+import { gerarAudio, audioToBase64, base64ToAudioBlob, createAudioURL, revokeAudioURL, TTS_PROVIDERS } from '../services/ttsService';
+import { getAudiosByCapitulo, createAudio, updateAudio, deleteAudio } from '../services/audioService';
 import DeleteSecaoModal from '../components/DeleteSecaoModal';
 import AddImagemModal from '../components/AddImagemModal';
 import ConfirmDiscardModal from '../components/ConfirmDiscardModal';
@@ -14,6 +16,8 @@ import PublishConfirmModal from '../components/PublishConfirmModal';
 import GerarResumoModal from '../components/GerarResumoModal';
 import ResumoPreviewModal from '../components/ResumoPreviewModal';
 import DescricaoPreviewModal from '../components/DescricaoPreviewModal';
+import GerarAudioModal from '../components/GerarAudioModal';
+import AudioPreviewModal from '../components/AudioPreviewModal';
 import '../styles/secaoReorder.css';
 
 const Secoes = () => {
@@ -110,6 +114,16 @@ const Secoes = () => {
   
   // Estado para controlar exibição de resumo vs conteúdo original
   const [secoesComResumo, setSecoesComResumo] = useState({});
+
+  // Estados para geração e gerenciamento de áudio
+  const [showGerarAudioModal, setShowGerarAudioModal] = useState(false);
+  const [showAudioPreview, setShowAudioPreview] = useState(false);
+  const [audioGerado, setAudioGerado] = useState(null);
+  const [audioProviderUsado, setAudioProviderUsado] = useState('GOOGLE');
+  const [audioVoiceUsado, setAudioVoiceUsado] = useState('');
+  const [audioCapitulo, setAudioCapitulo] = useState(null);
+  const [loadingAudio, setLoadingAudio] = useState(false);
+  const [isRegeneratingAudio, setIsRegeneratingAudio] = useState(false);
 
   // Verificar se o usuário pode gerenciar seções
   const canManageSecoes = user && user.tipoUsuario && user.tipoUsuario.id === 1;
@@ -285,6 +299,13 @@ const Secoes = () => {
       fetchCapitulo();
     }
   }, [livroId, capituloId, user?.id]);
+
+  // Buscar áudio do capítulo
+  useEffect(() => {
+    if (capitulo && capitulo.id) {
+      fetchAudioCapitulo();
+    }
+  }, [capitulo?.id]);
 
   // Buscar rascunhos quando user e capitulo estiverem disponíveis
   useEffect(() => {
@@ -2272,6 +2293,147 @@ const Secoes = () => {
     }));
   };
 
+  // Buscar áudio do capítulo
+  const fetchAudioCapitulo = async () => {
+    try {
+      setLoadingAudio(true);
+      const response = await getAudiosByCapitulo(capitulo.id);
+      
+      if (response.success && response.data && response.data.length > 0) {
+        // Pegar o primeiro áudio (assumindo que há apenas um por capítulo)
+        setAudioCapitulo(response.data[0]);
+      } else {
+        setAudioCapitulo(null);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar áudio:', error);
+      setAudioCapitulo(null);
+    } finally {
+      setLoadingAudio(false);
+    }
+  };
+
+  // Função para obter o texto completo de todas as seções para gerar áudio
+  const obterTextoCompletoDasSecoes = () => {
+    return secoesFiltradas
+      .map(secao => {
+        let texto = '';
+        if (secao.titulo && secao.titulo.trim() !== '') {
+          texto += `${secao.titulo}.\n\n`;
+        }
+        if (secao.original && secao.original.trim() !== '') {
+          texto += `${secao.original}\n\n`;
+        }
+        return texto;
+      })
+      .join('\n')
+      .trim();
+  };
+
+  // Função para abrir o modal de geração de áudio
+  const handleOpenGerarAudio = () => {
+    setShowGerarAudioModal(true);
+  };
+
+  // Função para gerar áudio
+  const handleGerarAudio = async (textoCompleto, provider, voiceId) => {
+    try {
+      const audioBlob = await gerarAudio(textoCompleto, provider, voiceId);
+      
+      setAudioGerado(audioBlob);
+      setAudioProviderUsado(provider);
+      setAudioVoiceUsado(voiceId);
+      
+      // Mostrar preview
+      setShowAudioPreview(true);
+    } catch (error) {
+      console.error('Erro ao gerar áudio:', error);
+      throw error;
+    }
+  };
+
+  // Função para aceitar e salvar o áudio
+  const handleAcceptAudio = async () => {
+    if (!audioGerado) {
+      showNotification('error', 'Nenhum áudio para salvar');
+      return;
+    }
+
+    try {
+      setLoadingAudio(true);
+
+      // Converter blob para base64
+      const base64Audio = await audioToBase64(audioGerado);
+
+      // Verificar se já existe um áudio para este capítulo
+      if (audioCapitulo && audioCapitulo.id) {
+        // Atualizar áudio existente
+        const response = await updateAudio(audioCapitulo.id, {
+          conteudo: base64Audio,
+          content_type: 'audio/mpeg',
+          id_capitulo: capitulo.id
+        });
+
+        if (response.success) {
+          setAudioCapitulo(response.data);
+          showNotification('success', 'Áudio atualizado com sucesso!');
+        }
+      } else {
+        // Criar novo áudio
+        const response = await createAudio({
+          conteudo: base64Audio,
+          content_type: 'audio/mpeg',
+          id_capitulo: capitulo.id
+        });
+
+        if (response.success) {
+          setAudioCapitulo(response.data);
+          showNotification('success', 'Áudio salvo com sucesso!');
+        }
+      }
+
+      setAudioGerado(null);
+      setShowAudioPreview(false);
+    } catch (error) {
+      console.error('Erro ao salvar áudio:', error);
+      showNotification('error', 'Erro ao salvar áudio');
+    } finally {
+      setLoadingAudio(false);
+    }
+  };
+
+  // Função para regerar áudio
+  const handleRegenerateAudio = () => {
+    setIsRegeneratingAudio(true);
+    setShowAudioPreview(false);
+    setShowGerarAudioModal(true);
+    setAudioGerado(null);
+    setIsRegeneratingAudio(false);
+  };
+
+  // Função para deletar áudio
+  const handleDeleteAudio = async () => {
+    if (!audioCapitulo) return;
+
+    const confirmDelete = window.confirm('Tem certeza que deseja excluir o áudio deste capítulo?');
+    if (!confirmDelete) return;
+
+    try {
+      setLoadingAudio(true);
+      const response = await deleteAudio(audioCapitulo.id);
+
+      if (response.success) {
+        setAudioCapitulo(null);
+        showNotification('success', 'Áudio excluído com sucesso!');
+      }
+    } catch (error) {
+      console.error('Erro ao deletar áudio:', error);
+      showNotification('error', 'Erro ao excluir áudio');
+    } finally {
+      setLoadingAudio(false);
+    }
+  };
+
   // Funções para gerar resumo com IA
   const handleOpenGerarResumo = (secao) => {
     setSecaoParaResumo(secao);
@@ -2532,6 +2694,82 @@ const Secoes = () => {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Player de Áudio do Capítulo */}
+      {!loading && !error && secoes.length > 0 && (
+        <div className="audio-player-section">
+          {audioCapitulo ? (
+            <div className="audio-player-card">
+              <div className="audio-player-header">
+                <div className="audio-player-title">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polygon points="11,5 6,9 2,9 2,15 6,15 11,19 11,5"></polygon>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                  </svg>
+                  <span>Áudio do Capítulo</span>
+                </div>
+                {canManageSecoes && editMode && (
+                  <div className="audio-player-actions">
+                    <button 
+                      className="btn-regenerate-audio"
+                      onClick={handleOpenGerarAudio}
+                      title="Gerar novo áudio"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="23,4 23,10 17,10"></polyline>
+                        <polyline points="1,20 1,14 7,14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                      </svg>
+                    </button>
+                    <button 
+                      className="btn-delete-audio"
+                      onClick={handleDeleteAudio}
+                      title="Excluir áudio"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="3,6 5,6 21,6"></polyline>
+                        <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="audio-player-content">
+                <audio 
+                  controls 
+                  src={`data:${audioCapitulo.content_type};base64,${audioCapitulo.conteudo}`}
+                  className="audio-element"
+                >
+                  Seu navegador não suporta o elemento de áudio.
+                </audio>
+              </div>
+            </div>
+          ) : (
+            canManageSecoes && editMode && (
+              <div className="no-audio-card">
+                <div className="no-audio-content">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <polygon points="11,5 6,9 2,9 2,15 6,15 11,19 11,5"></polygon>
+                    <line x1="23" y1="9" x2="17" y2="15"></line>
+                    <line x1="17" y1="9" x2="23" y2="15"></line>
+                  </svg>
+                  <p>Este capítulo ainda não possui áudio</p>
+                  <button 
+                    className="btn-primary btn-generate-audio"
+                    onClick={handleOpenGerarAudio}
+                    disabled={loadingAudio}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                    </svg>
+                    Gerar Áudio com IA
+                  </button>
+                </div>
+              </div>
+            )
           )}
         </div>
       )}
@@ -3061,6 +3299,31 @@ const Secoes = () => {
         onAccept={handleAcceptDescricao}
         onRegenerate={handleRegenerateDescricao}
         isRegenerating={isRegeneratingDescricao}
+      />
+
+      {/* Modal de geração de áudio */}
+      <GerarAudioModal
+        isOpen={showGerarAudioModal}
+        onClose={() => {
+          setShowGerarAudioModal(false);
+        }}
+        onGenerate={handleGerarAudio}
+        textoOriginal={obterTextoCompletoDasSecoes()}
+      />
+
+      {/* Modal de preview do áudio */}
+      <AudioPreviewModal
+        isOpen={showAudioPreview}
+        onClose={() => {
+          setShowAudioPreview(false);
+          setAudioGerado(null);
+        }}
+        audioBlob={audioGerado}
+        provider={TTS_PROVIDERS[audioProviderUsado]?.name || audioProviderUsado}
+        voiceName={TTS_PROVIDERS[audioProviderUsado]?.voices.find(v => v.id === audioVoiceUsado)?.name || ''}
+        onAccept={handleAcceptAudio}
+        onRegenerate={handleRegenerateAudio}
+        isRegenerating={isRegeneratingAudio}
       />
     </div>
   );
