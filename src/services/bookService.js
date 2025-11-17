@@ -50,3 +50,20 @@ export const deleteBook = async (id) => {
     throw error;
   }
 };
+
+// Função para buscar um livro por ID
+export const getBookById = async (id) => {
+  try {
+    const result = await apiClient.get(`/livros/${id}`);
+    
+    // Se a API retorna um objeto com 'data', extrair
+    if (result.data) {
+      return result.data;
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Erro ao buscar livro:', error);
+    throw error;
+  }
+};

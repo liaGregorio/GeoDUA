@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigationHistory } from '../hooks/useNavigationHistory';
 import { getSecoes, createSecao, updateSecao, deleteSecao, salvarSecoesComoRascunho } from '../services/secaoService';
 import { getImagens, createImagem, deleteImagem, updateImagem, fileToBytea } from '../services/imagemService';
-import { getCapitulos, getRascunhosByCapitulo, deleteCapitulo } from '../services/capituloService';
+import { getCapitulos, getRascunhosByCapitulo, deleteCapitulo, getCapituloById } from '../services/capituloService';
+import { getBookById } from '../services/bookService';
 import { api } from '../services/api';
 import { processImageData } from '../utils/imageUtils';
 import { gerarResumo, isProviderConfigured, getSetupInstructions, gerarDescricaoImagem } from '../services/iaService';
@@ -27,6 +29,7 @@ const Secoes = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { searchTerm, editMode, setEditMode } = useOutletContext();
+  const { addToHistory } = useNavigationHistory(user?.id);
   
   // Função utilitária para garantir que URLs tenham protocolo
   const formatUrl = (url) => {
@@ -209,31 +212,62 @@ const Secoes = () => {
   // Buscar informações do capítulo
   const fetchCapitulo = async () => {
     try {
-      // Primeiro tenta buscar entre os capítulos principais
-      const capitulos = await getCapitulos(livroId);
-      let capituloEncontrado = capitulos.find(cap => cap.id === parseInt(capituloId));
+      // Buscar capítulo diretamente pelo ID para garantir que temos os dados do Livro
+      let capituloEncontrado = await getCapituloById(capituloId);
       
-      // Se não encontrou, pode ser um rascunho - buscar entre todos os rascunhos
-      if (!capituloEncontrado && user?.id) {
-        try {
-          for (const cap of capitulos) {
-            const rascunhosDoCapitulo = await getRascunhosByCapitulo(cap.id, user.id);
-            if (Array.isArray(rascunhosDoCapitulo)) {
-              capituloEncontrado = rascunhosDoCapitulo.find(rascunho => rascunho.id === parseInt(capituloId));
-              if (capituloEncontrado) {
-                break;
-              }
-            }
-          }
-        } catch (rascunhoError) {
-          // Erro ao buscar rascunhos não é crítico
-        }
+      // Se não tem dados do livro, buscar separadamente
+      if (capituloEncontrado && !capituloEncontrado.Livro && livroId) {
+        const livroData = await getBookById(livroId);
+        capituloEncontrado.Livro = livroData;
       }
       
       setCapitulo(capituloEncontrado);
       
+      // Adicionar ao histórico de navegação se encontrou o capítulo
+      if (capituloEncontrado && capituloEncontrado.Livro) {
+        addToHistory(
+          livroId,
+          capituloEncontrado.Livro.titulo,
+          capituloEncontrado.id,
+          capituloEncontrado.titulo || capituloEncontrado.nome
+        );
+      }
+      
     } catch (err) {
       console.error('Erro ao buscar capítulo:', err);
+      
+      // Fallback: tentar buscar da lista de capítulos
+      try {
+        const capitulos = await getCapitulos(livroId);
+        let capituloEncontrado = capitulos.find(cap => cap.id === parseInt(capituloId));
+        
+        // Se não encontrou, pode ser um rascunho - buscar entre todos os rascunhos
+        if (!capituloEncontrado && user?.id) {
+          try {
+            for (const cap of capitulos) {
+              const rascunhosDoCapitulo = await getRascunhosByCapitulo(cap.id, user.id);
+              if (Array.isArray(rascunhosDoCapitulo)) {
+                capituloEncontrado = rascunhosDoCapitulo.find(rascunho => rascunho.id === parseInt(capituloId));
+                if (capituloEncontrado) {
+                  break;
+                }
+              }
+            }
+          } catch (rascunhoError) {
+            // Erro ao buscar rascunhos não é crítico
+          }
+        }
+        
+        // Se encontrou mas não tem dados do livro, buscar separadamente
+        if (capituloEncontrado && !capituloEncontrado.Livro && livroId) {
+          const livroData = await getBookById(livroId);
+          capituloEncontrado.Livro = livroData;
+        }
+        
+        setCapitulo(capituloEncontrado);
+      } catch (fallbackErr) {
+        console.error('Erro no fallback ao buscar capítulo:', fallbackErr);
+      }
     }
   };
 

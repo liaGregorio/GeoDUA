@@ -114,7 +114,7 @@ function Layout() {
       <header className="header">
         <div className="header-content">
           {/* Logo */}
-          <div className="logo">
+          <div className="logo" onClick={() => navigate('/inicio')} style={{ cursor: 'pointer' }}>
             <img src="/logo.png" alt="GeoDUA Logo" className="logo-image" />
             <span className="logo-text">GeoDUA</span>
           </div>
@@ -150,12 +150,12 @@ function Layout() {
               className="icon-button"
               onClick={() => {
                 if (user) {
-                  logout();
-                  navigate('/login');
+                  navigate('/perfil');
                 } else {
                   navigate('/login');
                 }
               }}
+              title={user ? 'Perfil' : 'Login'}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
