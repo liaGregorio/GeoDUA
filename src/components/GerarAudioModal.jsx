@@ -3,8 +3,8 @@ import { TTS_PROVIDERS, getAvailableProviders, getSetupInstructions } from '../s
 import './GerarAudioModal.css';
 
 const GerarAudioModal = ({ isOpen, onClose, onGenerate, textoOriginal }) => {
-  const [selectedProvider, setSelectedProvider] = useState('GOOGLE');
-  const [selectedVoice, setSelectedVoice] = useState('pt-BR-Neural2-A');
+  const [selectedProvider, setSelectedProvider] = useState('ELEVENLABS_FLASH_V2_5');
+  const [selectedVoice, setSelectedVoice] = useState('EXAVITQu4vr4xnSDxMaL');
   const [availableProviders, setAvailableProviders] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
@@ -47,9 +47,9 @@ const GerarAudioModal = ({ isOpen, onClose, onGenerate, textoOriginal }) => {
       let friendlyMessage = error.message;
       
       if (error.message.includes('401') && error.message.includes('ElevenLabs')) {
-        friendlyMessage = 'ElevenLabs: Acesso bloqueado. O plano gratuito pode estar temporariamente indisponível ou você pode estar usando VPN/proxy. Tente usar o Google Cloud TTS ou aguarde algumas horas.';
+        friendlyMessage = 'ElevenLabs: Acesso bloqueado. O plano gratuito pode estar temporariamente indisponível ou você pode estar usando VPN/proxy. Tente usar outro IP.';
       } else if (error.message.includes('403') && error.message.includes('ElevenLabs')) {
-        friendlyMessage = 'ElevenLabs: Limite de uso gratuito atingido. Use o Google Cloud TTS ou aguarde o próximo ciclo.';
+        friendlyMessage = 'ElevenLabs: Limite de uso atingido. Aguarde o próximo ciclo ou faça upgrade do plano.';
       } else if (error.message.includes('429')) {
         friendlyMessage = 'Muitas requisições. Aguarde alguns segundos e tente novamente.';
       } else if (error.message.includes('não configurada')) {
