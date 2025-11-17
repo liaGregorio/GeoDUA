@@ -2301,7 +2301,28 @@ const Secoes = () => {
       
       if (response.success && response.data && response.data.length > 0) {
         // Pegar o primeiro áudio (assumindo que há apenas um por capítulo)
-        setAudioCapitulo(response.data[0]);
+        const audioData = response.data[0];
+        
+        // Converter Buffer para base64 string se necessário
+        if (audioData.conteudo && audioData.conteudo.type === 'Buffer' && Array.isArray(audioData.conteudo.data)) {
+          // Método mais eficiente e correto para converter Buffer para base64
+          const uint8Array = new Uint8Array(audioData.conteudo.data);
+          
+          // Usar um método otimizado para grandes arrays
+          const chunkSize = 0x8000; // 32KB chunks
+          let base64String = '';
+          
+          for (let i = 0; i < uint8Array.length; i += chunkSize) {
+            const chunk = uint8Array.subarray(i, i + chunkSize);
+            base64String += String.fromCharCode.apply(null, chunk);
+          }
+          
+          base64String = btoa(base64String);
+          
+          audioData.conteudo = base64String;
+        }
+        
+        setAudioCapitulo(audioData);
       } else {
         setAudioCapitulo(null);
       }
@@ -2742,6 +2763,20 @@ const Secoes = () => {
                   controls 
                   src={`data:${audioCapitulo.content_type};base64,${audioCapitulo.conteudo}`}
                   className="audio-element"
+                  onError={(e) => {
+                    console.error('Audio element error:', {
+                      error: e.target.error,
+                      errorCode: e.target.error?.code,
+                      errorMessage: e.target.error?.message,
+                      src: e.target.src?.substring(0, 100) + '...'
+                    });
+                  }}
+                  onLoadedMetadata={(e) => {
+                    console.log('Audio metadata loaded:', {
+                      duration: e.target.duration,
+                      readyState: e.target.readyState
+                    });
+                  }}
                 >
                   Seu navegador não suporta o elemento de áudio.
                 </audio>
