@@ -18,7 +18,9 @@ import ResumoPreviewModal from '../components/ResumoPreviewModal';
 import DescricaoPreviewModal from '../components/DescricaoPreviewModal';
 import GerarAudioModal from '../components/GerarAudioModal';
 import AudioPreviewModal from '../components/AudioPreviewModal';
+import DeleteAudioModal from '../components/DeleteAudioModal';
 import '../styles/secaoReorder.css';
+import '../styles/audioPlayer.css';
 
 const Secoes = () => {
   const { livroId, capituloId } = useParams();
@@ -124,6 +126,7 @@ const Secoes = () => {
   const [audioCapitulo, setAudioCapitulo] = useState(null);
   const [loadingAudio, setLoadingAudio] = useState(false);
   const [isRegeneratingAudio, setIsRegeneratingAudio] = useState(false);
+  const [showDeleteAudioModal, setShowDeleteAudioModal] = useState(false);
 
   // Verificar se o usuário pode gerenciar seções
   const canManageSecoes = user && user.tipoUsuario && user.tipoUsuario.id === 1;
@@ -2432,12 +2435,14 @@ const Secoes = () => {
     setIsRegeneratingAudio(false);
   };
 
+  // Função para abrir modal de confirmação de exclusão
+  const handleOpenDeleteAudio = () => {
+    setShowDeleteAudioModal(true);
+  };
+
   // Função para deletar áudio
   const handleDeleteAudio = async () => {
     if (!audioCapitulo) return;
-
-    const confirmDelete = window.confirm('Tem certeza que deseja excluir o áudio deste capítulo?');
-    if (!confirmDelete) return;
 
     try {
       setLoadingAudio(true);
@@ -2747,7 +2752,7 @@ const Secoes = () => {
                     </button>
                     <button 
                       className="btn-delete-audio"
-                      onClick={handleDeleteAudio}
+                      onClick={handleOpenDeleteAudio}
                       title="Excluir áudio"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -3359,6 +3364,14 @@ const Secoes = () => {
         onAccept={handleAcceptAudio}
         onRegenerate={handleRegenerateAudio}
         isRegenerating={isRegeneratingAudio}
+      />
+
+      {/* Modal de confirmação de exclusão de áudio */}
+      <DeleteAudioModal
+        isOpen={showDeleteAudioModal}
+        onClose={() => setShowDeleteAudioModal(false)}
+        onDelete={handleDeleteAudio}
+        loading={loadingAudio}
       />
     </div>
   );

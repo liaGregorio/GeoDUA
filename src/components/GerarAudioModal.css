@@ -275,6 +275,19 @@
   border-top: 1px solid #e5e7eb;
 }
 
+.gerar-audio-modal .modal-footer .btn-primary,
+.gerar-audio-modal .modal-footer .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.gerar-audio-modal .modal-footer .btn-primary svg,
+.gerar-audio-modal .modal-footer .btn-secondary svg {
+  flex-shrink: 0;
+}
+
 .modal-footer .spinner {
   animation: spin 1s linear infinite;
 }
@@ -494,12 +507,25 @@
     max-height: 95vh;
   }
 
+  .gerar-audio-modal .modal-body {
+    padding: 16px;
+  }
+
   .provider-options {
     grid-template-columns: 1fr;
   }
 
   .provider-option {
     min-height: 70px;
+    padding: 12px;
+  }
+
+  .provider-name {
+    font-size: 13px;
+  }
+
+  .provider-description {
+    font-size: 11px;
   }
 
   .text-preview {
@@ -508,5 +534,45 @@
 
   .instructions-panel {
     max-height: 200px;
+  }
+
+  .gerar-audio-modal .modal-footer {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .gerar-audio-modal .modal-footer .btn-primary,
+  .gerar-audio-modal .modal-footer .btn-secondary {
+    width: 100%;
+  }
+
+  .error-message-modal,
+  .warning-message {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .btn-show-instructions {
+    width: 100%;
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .gerar-audio-modal .modal-body {
+    padding: 12px;
+  }
+
+  .form-section label {
+    font-size: 13px;
+  }
+
+  .provider-option {
+    padding: 10px;
+  }
+
+  .text-stats {
+    flex-direction: column;
+    gap: 4px;
   }
 }
