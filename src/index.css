@@ -2455,6 +2455,21 @@ body.dark-mode .auth-copyright {
   gap: 12px;
 }
 
+.link3d-preview-section {
+  margin-top: 12px;
+  padding: 16px;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.link3d-preview-section h5 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
 .link3d-order {
   display: flex;
   flex-direction: column;
@@ -3352,6 +3367,15 @@ body.dark-mode .auth-copyright {
 
 .dark-mode .link3d-order small {
   color: #9ca3af;
+}
+
+.dark-mode .link3d-preview-section {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+.dark-mode .link3d-preview-section h5 {
+  color: #e5e7eb;
 }
 
 .dark-mode .order-button {
@@ -4547,7 +4571,21 @@ body:not(.dark-mode) .secao-card-nova {
 
 .secao-link3d-user {
   margin: 1.5rem 0;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
+}
+
+.modelo-3d-title {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
 }
 
 .link-3d-button {
@@ -4557,12 +4595,13 @@ body:not(.dark-mode) .secao-card-nova {
   background: #519271;
   color: white;
   text-decoration: none;
-  padding: 12px 24px;
+  padding: 10px 20px;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(81, 146, 113, 0.3);
+  box-shadow: none;
+  margin-top: 12px;
 }
 
 .link-3d-button:hover {
@@ -4570,6 +4609,11 @@ body:not(.dark-mode) .secao-card-nova {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(81, 146, 113, 0.4);
   color: white;
+}
+
+.link3d-error-fallback {
+  margin-top: 12px;
+  text-align: center;
 }
 
 .secao-imagem-user {
@@ -4668,6 +4712,15 @@ body:not(.dark-mode) .secao-card-nova {
 .dark-mode .link-3d-button:hover {
   background: #234434 !important;
   box-shadow: 0 4px 12px rgba(45, 87, 66, 0.5) !important;
+}
+
+.dark-mode .secao-link3d-user {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+.dark-mode .modelo-3d-title {
+  color: #e5e7eb;
 }
 
 .dark-mode .secao-imagem-user .image-caption {
@@ -5984,13 +6037,13 @@ body:not(.dark-mode) .secao-card-nova {
 
 /* Modo escuro - Resumo */
 .dark-mode .btn-toggle-resumo {
-  background: #519271;
+  background: #2d5742;
   color: white;
 }
 
 .dark-mode .btn-toggle-resumo:hover {
-  background: #3d7056;
-  box-shadow: 0 2px 8px rgba(81, 146, 113, 0.5);
+  background: #234434;
+  box-shadow: 0 2px 8px rgba(45, 87, 66, 0.5);
 }
 
 .dark-mode .secao-resumo-display {

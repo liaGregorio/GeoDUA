@@ -21,6 +21,7 @@ import DescricaoPreviewModal from '../components/DescricaoPreviewModal';
 import GerarAudioModal from '../components/GerarAudioModal';
 import AudioPreviewModal from '../components/AudioPreviewModal';
 import DeleteAudioModal from '../components/DeleteAudioModal';
+import STLViewer from '../components/STLViewer';
 import '../styles/secaoReorder.css';
 import '../styles/audioPlayer.css';
 
@@ -452,12 +453,6 @@ const Secoes = () => {
           if (field === 'resumo' && (feedbackDireto !== null || feedbackResumo !== null)) {
             updated.prompt = promptDireto || promptUsado;
             updated.feedback = feedbackDireto !== null ? feedbackDireto : feedbackResumo;
-            console.log('Adicionando prompt e feedback à seção existente:', { 
-              prompt: updated.prompt, 
-              feedback: updated.feedback,
-              feedbackDireto,
-              feedbackResumo 
-            });
           }
           
           return updated;
@@ -485,12 +480,6 @@ const Secoes = () => {
       if (field === 'resumo' && (feedbackDireto !== null || feedbackResumo !== null)) {
         updatedSecao.prompt = promptDireto || promptUsado;
         updatedSecao.feedback = feedbackDireto !== null ? feedbackDireto : feedbackResumo;
-        console.log('Adicionando prompt e feedback à nova entrada:', { 
-          prompt: updatedSecao.prompt, 
-          feedback: updatedSecao.feedback,
-          feedbackDireto,
-          feedbackResumo 
-        });
       }
       
       // Adicionar nova seção à lista de editadas preservando os campos originais
@@ -717,6 +706,8 @@ const Secoes = () => {
             )}
             {item.type === 'link3d' && (
               <div className="secao-link3d-user">
+                <h4 className="modelo-3d-title">Modelo Tátil 3D</h4>
+                <STLViewer url={item.content} formatUrl={formatUrl} />
                 <a 
                   href={formatUrl(item.content)} 
                   target="_blank" 
@@ -728,7 +719,7 @@ const Secoes = () => {
                     <polyline points="15,3 21,3 21,9"></polyline>
                     <line x1="10" y1="14" x2="21" y2="3"></line>
                   </svg>
-                  Ver modelo 3D
+                  Abrir em nova aba
                 </a>
               </div>
             )}
@@ -871,21 +862,27 @@ const Secoes = () => {
               value={getSecaoValue(secao.id, 'link3d') || ''}
               onChange={(e) => handleUpdateSecao(secao.id, 'link3d', e.target.value)}
               className="secao-link3d-input"
-              placeholder="https://exemplo.com/modelo-tatil"
+              placeholder="https://drive.google.com/file/d/... ou URL do arquivo STL"
             />
             {getSecaoValue(secao.id, 'link3d') && (
-              <div className="link3d-order">
-                <label>Posição do Modelo Tátil:</label>
-                <select
-                  value={getSecaoValue(secao.id, 'ordem3d') || 1}
-                  onChange={(e) => handleUpdateSecao(secao.id, 'ordem3d', parseInt(e.target.value))}
-                  className="order-select"
-                >
-                  <option value={1}>Após o conteúdo</option>
-                  <option value={99}>No final (após todas as imagens)</option>
-                </select>
-                <small>Define onde o Modelo Tátil aparecerá no conteúdo</small>
-              </div>
+              <>
+                <div className="link3d-preview-section">
+                  <h5>Pré-visualização:</h5>
+                  <STLViewer url={formatUrl(getSecaoValue(secao.id, 'link3d'))} />
+                </div>
+                <div className="link3d-order">
+                  <label>Posição do Modelo Tátil:</label>
+                  <select
+                    value={getSecaoValue(secao.id, 'ordem3d') || 1}
+                    onChange={(e) => handleUpdateSecao(secao.id, 'ordem3d', parseInt(e.target.value))}
+                    className="order-select"
+                  >
+                    <option value={1}>Após o conteúdo</option>
+                    <option value={99}>No final (após todas as imagens)</option>
+                  </select>
+                  <small>Define onde o Modelo Tátil aparecerá no conteúdo</small>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -1636,12 +1633,6 @@ const Secoes = () => {
         if (campo === 'resumo' && (feedbackDireto !== null || feedbackResumo !== null)) {
           updated.prompt = promptDireto || promptUsado;
           updated.feedback = feedbackDireto !== null ? feedbackDireto : feedbackResumo;
-          console.log('Adicionando prompt e feedback à nova seção:', { 
-            prompt: updated.prompt, 
-            feedback: updated.feedback,
-            feedbackDireto,
-            feedbackResumo 
-          });
         }
         
         return updated;
@@ -1927,7 +1918,6 @@ const Secoes = () => {
           
           if (temMudancas) {
             try {
-              console.log('Salvando seção com dados:', secaoEditada);
               await updateSecao(secaoEditada.id, secaoEditada);
               secoesModificadas++;  // Usando a variável renomeada
             } catch (updateError) {
@@ -2011,8 +2001,6 @@ const Secoes = () => {
       // Criar novas seções com suas imagens
       for (const novaSecao of novasSecoes) {
         const { id, isNew, ...secaoData } = novaSecao;
-        
-        console.log('Criando nova seção com dados:', secaoData);
         
         // Criar a seção primeiro
         const secaoCriada = await createSecao(secaoData);
@@ -2542,7 +2530,6 @@ const Secoes = () => {
   };
 
   const handleAcceptResumo = (userFeedback) => {
-    console.log('handleAcceptResumo chamado com:', { userFeedback, promptUsado, resumoGerado: resumoGerado?.substring(0, 50) });
     
     // Salvar o feedback do usuário (true = gostou, false = não gostou, null = não respondeu)
     setFeedbackResumo(userFeedback);
@@ -2811,10 +2798,6 @@ const Secoes = () => {
                     });
                   }}
                   onLoadedMetadata={(e) => {
-                    console.log('Audio metadata loaded:', {
-                      duration: e.target.duration,
-                      readyState: e.target.readyState
-                    });
                   }}
                 >
                   Seu navegador não suporta o elemento de áudio.
@@ -3007,21 +2990,27 @@ const Secoes = () => {
                             value={secao.link3d || ''}
                             onChange={(e) => atualizarNovaSecao(secao.id, 'link3d', e.target.value)}
                             className="secao-link3d-input"
-                            placeholder="https://exemplo.com/modelo-tatil"
+                            placeholder="https://drive.google.com/file/d/... ou URL do arquivo STL"
                           />
                           {secao.link3d && (
-                            <div className="link3d-order">
-                              <label>Posição do Modelo Tátil:</label>
-                              <select
-                                value={secao.ordem3d || 1}
-                                onChange={(e) => atualizarNovaSecao(secao.id, 'ordem3d', parseInt(e.target.value))}
-                                className="order-select"
-                              >
-                                <option value={1}>Após o conteúdo</option>
-                                <option value={99}>No final (após todas as imagens)</option>
-                              </select>
-                              <small>Define onde o Modelo Tátil aparecerá no conteúdo</small>
-                            </div>
+                            <>
+                              <div className="link3d-preview-section">
+                                <h5>Pré-visualização:</h5>
+                                <STLViewer url={formatUrl(secao.link3d)} />
+                              </div>
+                              <div className="link3d-order">
+                                <label>Posição do Modelo Tátil:</label>
+                                <select
+                                  value={secao.ordem3d || 1}
+                                  onChange={(e) => atualizarNovaSecao(secao.id, 'ordem3d', parseInt(e.target.value))}
+                                  className="order-select"
+                                >
+                                  <option value={1}>Após o conteúdo</option>
+                                  <option value={99}>No final (após todas as imagens)</option>
+                                </select>
+                                <small>Define onde o Modelo Tátil aparecerá no conteúdo</small>
+                              </div>
+                            </>
                           )}
                         </div>
 

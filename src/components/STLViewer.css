@@ -1,0 +1,152 @@
+.stl-viewer-container {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f8f9fa;
+  border: 1px solid #e2e8f0;
+  margin: 16px 0;
+  touch-action: none; /* Permitir gestos touch personalizados */
+}
+
+.stl-viewer-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #64748b;
+  z-index: 10;
+}
+
+.stl-viewer-loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.stl-viewer-loading p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.stl-viewer-error {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #ef4444;
+  text-align: center;
+  padding: 20px;
+}
+
+.stl-viewer-error svg {
+  opacity: 0.5;
+}
+
+.stl-viewer-error p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.stl-viewer-error small {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.stl-viewer-controls {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 6px 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.stl-viewer-controls small {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.stl-viewer-controls svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+/* Mostrar dicas diferentes para desktop e mobile */
+.mobile-hint {
+  display: none;
+}
+
+.desktop-hint {
+  display: inline;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .stl-viewer-container {
+    height: 300px;
+  }
+  
+  .stl-viewer-controls small {
+    font-size: 10px;
+  }
+  
+  .mobile-hint {
+    display: inline;
+  }
+  
+  .desktop-hint {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .stl-viewer-container {
+    height: 250px;
+  }
+  
+  .stl-viewer-loading .spinner {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .stl-viewer-loading p {
+    font-size: 12px;
+  }
+}
+
+/* Melhorar interação touch em dispositivos móveis */
+@media (hover: none) and (pointer: coarse) {
+  .stl-viewer-container {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
