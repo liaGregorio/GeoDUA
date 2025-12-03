@@ -25,15 +25,17 @@ export const AI_PROVIDERS = {
 
 /**
  * Prompt padrão para geração de resumos
+ * Formatação acessível para TDAH: uma frase por linha
  */
-const DEFAULT_PROMPT = `Você é um assistente especializado em criar resumos educacionais claros e concisos.
-Analise o texto fornecido e crie um resumo objetivo que:
+const DEFAULT_PROMPT = `Você é um assistente especializado em criar resumos educacionais claros e concisos para pessoas com TDAH.
+Analise o texto e produza um resumo seguindo estas diretrizes:
+- Uma frase por linha (use quebras de linha entre frases)
+- Linguagem simples, direta e acessível
 - Capture os pontos principais
-- Use linguagem clara e acessível
-- Seja direto e informativo
-- Mantenha o tom educacional
+- Mantenha o tom educacional e objetivo
 
-Retorne apenas o resumo, sem introduções ou explicações adicionais.`;
+Formate o resultado com uma frase por linha, sem parágrafos.
+Não inclua introduções, títulos, explicações adicionais, itens com marcadores ou numeração — apenas o resumo.`;
 
 /**
  * Gera um resumo usando Groq API
