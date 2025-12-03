@@ -864,18 +864,18 @@ const Secoes = () => {
 
         {/* Campo Link 3D com melhor organização */}
         <div className="secao-link3d">
-          <h4>Link 3D (opcional):</h4>
+          <h4>Modelo Tátil (opcional):</h4>
           <div className="link3d-container">
             <input
               type="url"
               value={getSecaoValue(secao.id, 'link3d') || ''}
               onChange={(e) => handleUpdateSecao(secao.id, 'link3d', e.target.value)}
               className="secao-link3d-input"
-              placeholder="https://exemplo.com/modelo-3d"
+              placeholder="https://exemplo.com/modelo-tatil"
             />
             {getSecaoValue(secao.id, 'link3d') && (
               <div className="link3d-order">
-                <label>Posição do Link 3D:</label>
+                <label>Posição do Modelo Tátil:</label>
                 <select
                   value={getSecaoValue(secao.id, 'ordem3d') || 1}
                   onChange={(e) => handleUpdateSecao(secao.id, 'ordem3d', parseInt(e.target.value))}
@@ -884,7 +884,7 @@ const Secoes = () => {
                   <option value={1}>Após o conteúdo</option>
                   <option value={99}>No final (após todas as imagens)</option>
                 </select>
-                <small>Define onde o link 3D aparecerá no conteúdo</small>
+                <small>Define onde o Modelo Tátil aparecerá no conteúdo</small>
               </div>
             )}
           </div>
@@ -3001,17 +3001,17 @@ const Secoes = () => {
 
                         {/* Campo Link 3D com melhor organização */}
                         <div className="secao-field optional">
-                          <label>Link 3D</label>
+                          <label>Modelo Tátil</label>
                           <input
                             type="url"
                             value={secao.link3d || ''}
                             onChange={(e) => atualizarNovaSecao(secao.id, 'link3d', e.target.value)}
                             className="secao-link3d-input"
-                            placeholder="https://exemplo.com/modelo-3d"
+                            placeholder="https://exemplo.com/modelo-tatil"
                           />
                           {secao.link3d && (
                             <div className="link3d-order">
-                              <label>Posição do Link 3D:</label>
+                              <label>Posição do Modelo Tátil:</label>
                               <select
                                 value={secao.ordem3d || 1}
                                 onChange={(e) => atualizarNovaSecao(secao.id, 'ordem3d', parseInt(e.target.value))}
@@ -3020,7 +3020,7 @@ const Secoes = () => {
                                 <option value={1}>Após o conteúdo</option>
                                 <option value={99}>No final (após todas as imagens)</option>
                               </select>
-                              <small>Define onde o link 3D aparecerá no conteúdo</small>
+                              <small>Define onde o Modelo Tátil aparecerá no conteúdo</small>
                             </div>
                           )}
                         </div>
