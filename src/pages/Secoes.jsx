@@ -18,6 +18,7 @@ import PublishConfirmModal from '../components/PublishConfirmModal';
 import GerarResumoModal from '../components/GerarResumoModal';
 import ResumoPreviewModal from '../components/ResumoPreviewModal';
 import DescricaoPreviewModal from '../components/DescricaoPreviewModal';
+import ImageEditModal from '../components/ImageEditModal';
 import GerarAudioModal from '../components/GerarAudioModal';
 import AudioPreviewModal from '../components/AudioPreviewModal';
 import DeleteAudioModal from '../components/DeleteAudioModal';
@@ -117,6 +118,11 @@ const Secoes = () => {
   const [descricaoGerada, setDescricaoGerada] = useState('');
   const [imagemParaDescricao, setImagemParaDescricao] = useState(null);
   const [isRegeneratingDescricao, setIsRegeneratingDescricao] = useState(false);
+  
+  // Estados para modal de edição de imagem
+  const [showImageEditModal, setShowImageEditModal] = useState(false);
+  const [imagemEditando, setImagemEditando] = useState(null);
+  const [descricaoImagemEditando, setDescricaoImagemEditando] = useState('');
   
   // Estado para controlar exibição de resumo vs conteúdo original
   const [secoesComResumo, setSecoesComResumo] = useState({});
@@ -970,19 +976,14 @@ const Secoes = () => {
                         title="Gerar descrição com IA"
                       >
                         {gerandoDescricao[`img-${imagem.id}`] ? (
-                          <>
-                            <svg className="spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <circle cx="12" cy="12" r="10"></circle>
-                            </svg>
-                            Gerando...
-                          </>
+                          <span className="spinner-small"></span>
                         ) : (
-                          <>
+                          <span className="btn-text">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
                             </svg>
                             IA
-                          </>
+                          </span>
                         )}
                       </button>
                     </div>
@@ -1182,7 +1183,11 @@ const Secoes = () => {
     
     return (
       <div key={imagem.id} className="imagem-existente">
-        <div className="image-preview">
+        <div 
+          className="image-preview clickable-image" 
+          onClick={() => handleOpenImageEdit(imagem, secaoId)}
+          title="Clique para editar a descrição"
+        >
           <img 
             src={processedImage.src} 
             alt={processedImage.descricao} 
@@ -1193,7 +1198,10 @@ const Secoes = () => {
           />
           <button 
             className="delete-image-button"
-            onClick={() => marcarImagemExistenteParaRemocao(imagem.id, secaoId)}
+            onClick={(e) => {
+              e.stopPropagation();
+              marcarImagemExistenteParaRemocao(imagem.id, secaoId);
+            }}
             title="Remover imagem"
           >
             ×
@@ -1216,30 +1224,16 @@ const Secoes = () => {
               title="Gerar descrição com IA"
             >
               {gerandoDescricao[`img-${imagem.id}`] ? (
-                <>
-                  <svg className="spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                  </svg>
-                  Gerando...
-                </>
+                <span className="spinner-small"></span>
               ) : (
-                <>
+                <span className="btn-text">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
                   </svg>
                   IA
-                </>
+                </span>
               )}
             </button>
-            {foiEditada && (
-              <button
-                className="save-description-button"
-                onClick={() => salvarDescricaoImagem(imagem.id)}
-                title="Salvar descrição"
-              >
-                ✓
-              </button>
-            )}
           </div>
           <div className="image-order">
             <span>Ordem: {imagem.ordem}</span>
@@ -1349,19 +1343,14 @@ const Secoes = () => {
                     title="Gerar descrição com IA"
                   >
                     {gerandoDescricao[`img-${imagem.id}`] ? (
-                      <>
-                        <svg className="spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="12" cy="12" r="10"></circle>
-                        </svg>
-                        Gerando...
-                      </>
+                      <span className="spinner-small"></span>
                     ) : (
-                      <>
+                      <span className="btn-text">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
                         </svg>
                         IA
-                      </>
+                      </span>
                     )}
                   </button>
                 </div>
@@ -2561,10 +2550,13 @@ const Secoes = () => {
   };
 
   // Funções para gerenciar preview de descrição de imagem
-  const handleAcceptDescricao = () => {
+  const handleAcceptDescricao = (descricaoEditada) => {
     if (!imagemParaDescricao) return;
 
     const { imagemId } = imagemParaDescricao;
+    
+    // Usar a descrição editada pelo usuário, não a original gerada pela IA
+    const descricaoFinal = descricaoEditada || descricaoGerada;
 
     // Verificar se é imagem temporária
     if (imagemId.toString().startsWith('temp-')) {
@@ -2573,14 +2565,14 @@ const Secoes = () => {
         const updated = {};
         Object.keys(prev).forEach(secaoKey => {
           updated[secaoKey] = prev[secaoKey].map(img => 
-            img.id === imagemId ? { ...img, descricao: descricaoGerada } : img
+            img.id === imagemId ? { ...img, descricao: descricaoFinal } : img
           );
         });
         return updated;
       });
     } else {
       // Atualizar descrição de imagem existente
-      atualizarDescricaoImagem(imagemId, descricaoGerada);
+      atualizarDescricaoImagem(imagemId, descricaoFinal);
     }
 
     showNotification('success', 'Descrição aplicada com sucesso!');
@@ -2617,6 +2609,63 @@ const Secoes = () => {
       showNotification('error', 'Erro ao gerar nova descrição');
     } finally {
       setIsRegeneratingDescricao(false);
+    }
+  };
+
+  // Funções para gerenciar o modal de edição de imagem
+  const handleOpenImageEdit = (imagem, secaoId) => {
+    const imagemEditada = imagensEditadas[imagem.id];
+    const descricaoAtual = imagemEditada?.descricao ?? imagem.descricao;
+    
+    setImagemEditando({ ...imagem, secaoId });
+    setDescricaoImagemEditando(descricaoAtual || '');
+    setShowImageEditModal(true);
+  };
+
+  const handleSaveImageEdit = (novaDescricao) => {
+    if (!imagemEditando) return;
+
+    // Apenas atualizar a descrição temporariamente no estado
+    // Não salvar no backend - o usuário deve usar o botão "Salvar" que aparece abaixo da imagem
+    atualizarDescricaoImagem(imagemEditando.id, novaDescricao);
+
+    setShowImageEditModal(false);
+    setImagemEditando(null);
+    setDescricaoImagemEditando('');
+  };
+
+  const handleGerarDescricaoNoModal = async () => {
+    if (!imagemEditando) return;
+
+    const processedImage = processImageData(imagemEditando);
+    if (!processedImage) return;
+
+    const key = `img-${imagemEditando.id}`;
+    setGerandoDescricao(prev => ({ ...prev, [key]: true }));
+
+    try {
+      let fileToAnalyze = null;
+      
+      // Tentar obter o arquivo da imagem
+      if (processedImage.src) {
+        const response = await fetch(processedImage.src);
+        const blob = await response.blob();
+        fileToAnalyze = new File([blob], 'image.jpg', { type: blob.type });
+      }
+      
+      if (!fileToAnalyze) {
+        throw new Error('Imagem não disponível para análise');
+      }
+      
+      const descricao = await gerarDescricaoImagem(fileToAnalyze);
+      setDescricaoImagemEditando(descricao);
+      showNotification('success', 'Descrição gerada com sucesso! Você pode editá-la antes de salvar.');
+      
+    } catch (error) {
+      console.error('Erro ao gerar descrição:', error);
+      showNotification('error', error.message || 'Erro ao gerar descrição da imagem');
+    } finally {
+      setGerandoDescricao(prev => ({ ...prev, [key]: false }));
     }
   };
 
@@ -3362,6 +3411,21 @@ const Secoes = () => {
         onAccept={handleAcceptDescricao}
         onRegenerate={handleRegenerateDescricao}
         isRegenerating={isRegeneratingDescricao}
+      />
+
+      {/* Modal de edição de imagem */}
+      <ImageEditModal
+        show={showImageEditModal}
+        onClose={() => {
+          setShowImageEditModal(false);
+          setImagemEditando(null);
+          setDescricaoImagemEditando('');
+        }}
+        imagem={imagemEditando}
+        descricao={descricaoImagemEditando}
+        onSave={handleSaveImageEdit}
+        onGerarDescricao={handleGerarDescricaoNoModal}
+        isGenerating={imagemEditando && gerandoDescricao[`img-${imagemEditando.id}`]}
       />
 
       {/* Modal de geração de áudio */}

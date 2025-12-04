@@ -1,7 +1,19 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import '../styles/descricaoPreviewModal.css';
 
 const DescricaoPreviewModal = ({ isOpen, onClose, descricaoGerada, onAccept, onRegenerate, isRegenerating }) => {
+  const [editedDescricao, setEditedDescricao] = useState('');
+
+  useEffect(() => {
+    if (isOpen && descricaoGerada) {
+      setEditedDescricao(descricaoGerada);
+    }
+  }, [isOpen, descricaoGerada]);
+
+  const handleAccept = () => {
+    onAccept(editedDescricao);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -23,11 +35,16 @@ const DescricaoPreviewModal = ({ isOpen, onClose, descricaoGerada, onAccept, onR
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
               </svg>
-              Descrição gerada com Google Gemini
+              Descrição gerada com Google Gemini - Você pode editar antes de aplicar
             </div>
-            <div className="descricao-text">
-              {descricaoGerada}
-            </div>
+            <textarea
+              className="descricao-textarea"
+              value={editedDescricao}
+              onChange={(e) => setEditedDescricao(e.target.value)}
+              disabled={isRegenerating}
+              rows={8}
+              placeholder="Edite a descrição gerada..."
+            />
           </div>
 
           <div className="preview-actions">
@@ -56,7 +73,7 @@ const DescricaoPreviewModal = ({ isOpen, onClose, descricaoGerada, onAccept, onR
             </button>
             <button
               className="btn-accept"
-              onClick={onAccept}
+              onClick={handleAccept}
               disabled={isRegenerating}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
