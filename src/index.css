@@ -4602,7 +4602,7 @@ body:not(.dark-mode) .secao-card-nova {
 }
 
 .secao-texto p {
-  font-size: 1rem;
+  font-size: 20px;
   line-height: 1.7;
   color: #374151;
   margin-bottom: 1rem;
@@ -4711,6 +4711,14 @@ body:not(.dark-mode) .secao-card-nova {
   
   .secao-resumo-continuo p {
     font-size: 1rem;
+  }
+  
+  .secao-titulo-inline {
+    font-size: 26px;
+  }
+  
+  .secao-resumo-display p {
+    font-size: 16px !important;
   }
   
   .secao-texto p {
@@ -6066,6 +6074,7 @@ body:not(.dark-mode) .secao-card-nova {
   margin: 10px 0;
   line-height: 1.8;
   color: #2d4a3e;
+  font-size: 22px;
 }
 
 .secao-resumo-display p:first-child {
