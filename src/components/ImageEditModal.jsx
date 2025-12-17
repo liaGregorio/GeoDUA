@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { processImageData } from '../utils/imageUtils';
+import { AI_PROVIDERS, getAvailableProviders } from '../services/iaService';
 import './ImageEditModal.css';
 
 const ImageEditModal = ({ 
@@ -12,10 +13,24 @@ const ImageEditModal = ({
   isGenerating = false
 }) => {
   const [editedDescricao, setEditedDescricao] = useState('');
+  const [selectedProvider, setSelectedProvider] = useState('GROQ');
+  const [availableProviders, setAvailableProviders] = useState([]);
 
   useEffect(() => {
-    if (show && descricao !== undefined) {
-      setEditedDescricao(descricao || '');
+    if (show) {
+      if (descricao !== undefined) {
+        setEditedDescricao(descricao || '');
+      }
+      
+      // Carregar providers disponíveis
+      const providers = getAvailableProviders();
+      setAvailableProviders(providers);
+      
+      // Selecionar o primeiro provider configurado
+      const configured = providers.find(p => p.configured);
+      if (configured) {
+        setSelectedProvider(configured.id);
+      }
     }
   }, [show, descricao]);
 
@@ -25,13 +40,14 @@ const ImageEditModal = ({
 
   const handleGerarDescricao = () => {
     if (onGerarDescricao) {
-      onGerarDescricao();
+      onGerarDescricao(selectedProvider);
     }
   };
 
   if (!show) return null;
 
   const processedImage = imagem ? processImageData(imagem) : null;
+  const hasConfiguredProvider = availableProviders.some(p => p.configured);
 
   return (
     <div className="image-edit-modal-overlay" onClick={onClose}>
@@ -78,17 +94,40 @@ const ImageEditModal = ({
             />
             
             {onGerarDescricao && (
-              <button 
-                className={`generate-ia-btn ${isGenerating ? 'loading' : ''}`}
-                onClick={handleGerarDescricao}
-                disabled={isGenerating}
-              >
-                {isGenerating ? (
-                  <span className="spinner-small"></span>
-                ) : (
-                  <span className="btn-text">Gerar com IA</span>
-                )}
-              </button>
+              <div className="ia-generation-controls">
+                <div className="provider-select-container">
+                  <label htmlFor="provider-select">Modelo de IA:</label>
+                  <select
+                    id="provider-select"
+                    value={selectedProvider}
+                    onChange={(e) => setSelectedProvider(e.target.value)}
+                    disabled={isGenerating}
+                    className="provider-select-small"
+                  >
+                    {availableProviders.map(provider => (
+                      <option 
+                        key={provider.id} 
+                        value={provider.id}
+                        disabled={!provider.configured}
+                      >
+                        {provider.name} - {provider.description}
+                        {!provider.configured && ' (não configurado)'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button 
+                  className={`generate-ia-btn ${isGenerating ? 'loading' : ''}`}
+                  onClick={handleGerarDescricao}
+                  disabled={isGenerating || !hasConfiguredProvider}
+                >
+                  {isGenerating ? (
+                    <span className="spinner-small"></span>
+                  ) : (
+                    <span className="btn-text">Gerar com IA</span>
+                  )}
+                </button>
+              </div>
             )}
           </div>
         </div>

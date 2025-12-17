@@ -2,6 +2,7 @@
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GEMINI_MODEL = 'gemini-2.5-flash';
@@ -298,17 +299,90 @@ const fileToBase64 = (file) => {
 };
 
 /**
+ * Gera uma descrição educacional para uma imagem usando Groq
+ * @param {File|Blob} imageFile - Arquivo de imagem
+ * @returns {Promise<string>} - Descrição gerada
+ */
+const gerarDescricaoImagemGroq = async (imageFile) => {
+  if (!GROQ_API_KEY) {
+    throw new Error('Chave API Groq não configurada');
+  }
+
+  try {
+    // Converter imagem para base64
+    const base64Image = await fileToBase64(imageFile);
+    
+    // Detectar tipo MIME da imagem
+    const mimeType = imageFile.type || 'image/jpeg';
+
+    const prompt = `Analise esta imagem e forneça uma descrição educacional clara e objetiva.
+A descrição deve:
+- Identificar os elementos principais da imagem
+- Ter foco educacional/científico
+- Ser em português do Brasil
+
+Retorne apenas a descrição, sem introduções ou explicações adicionais.`;
+
+    const response = await fetch(GROQ_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: GROQ_VISION_MODEL,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: prompt
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:${mimeType};base64,${base64Image}`
+                }
+              }
+            ]
+          }
+        ],
+        temperature: 0.4,
+        max_tokens: 150,
+        top_p: 1
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        `Erro na API Groq: ${response.status} - ${errorData.error?.message || 'Erro desconhecido'}`
+      );
+    }
+
+    const data = await response.json();
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Resposta inválida da API Groq');
+    }
+
+    return data.choices[0].message.content.trim();
+
+  } catch (error) {
+    console.error('Erro ao gerar descrição da imagem com Groq:', error);
+    throw error;
+  }
+};
+
+/**
  * Gera uma descrição educacional para uma imagem usando Gemini
  * @param {File|Blob} imageFile - Arquivo de imagem
  * @returns {Promise<string>} - Descrição gerada
  */
-export const gerarDescricaoImagem = async (imageFile) => {
+const gerarDescricaoImagemGemini = async (imageFile) => {
   if (!GEMINI_API_KEY) {
-    throw new Error('Chave API Google Gemini não configurada. Configure VITE_GEMINI_API_KEY no arquivo .env');
-  }
-
-  if (!imageFile) {
-    throw new Error('É necessário fornecer uma imagem');
+    throw new Error('Chave API Google Gemini não configurada');
   }
 
   try {
@@ -386,8 +460,40 @@ Retorne apenas a descrição, sem introduções ou explicações adicionais.`;
     return data.candidates[0].content.parts[0].text.trim();
 
   } catch (error) {
-    console.error('Erro ao gerar descrição da imagem:', error);
+    console.error('Erro ao gerar descrição da imagem com Gemini:', error);
     throw error;
+  }
+};
+
+/**
+ * Gera uma descrição educacional para uma imagem usando o provider selecionado
+ * @param {File|Blob} imageFile - Arquivo de imagem
+ * @param {string} provider - Provider de IA ('GROQ' ou 'GEMINI')
+ * @returns {Promise<string>} - Descrição gerada
+ */
+export const gerarDescricaoImagem = async (imageFile, provider = 'GROQ') => {
+  if (!imageFile) {
+    throw new Error('É necessário fornecer uma imagem');
+  }
+
+  // Validar se o provider está configurado
+  if (!isProviderConfigured(provider)) {
+    const instructions = getSetupInstructions(provider);
+    throw new Error(
+      `${AI_PROVIDERS[provider].name} não configurado.\n\n` +
+      `Para configurar:\n${instructions.instructions.map((step, i) => `${i + 1}. ${step}`).join('\n')}`
+    );
+  }
+
+  switch (provider) {
+    case 'GROQ':
+      return await gerarDescricaoImagemGroq(imageFile);
+    
+    case 'GEMINI':
+      return await gerarDescricaoImagemGemini(imageFile);
+    
+    default:
+      throw new Error(`Provider não suportado: ${provider}`);
   }
 };
 

@@ -118,6 +118,7 @@ const Secoes = () => {
   const [descricaoGerada, setDescricaoGerada] = useState('');
   const [imagemParaDescricao, setImagemParaDescricao] = useState(null);
   const [isRegeneratingDescricao, setIsRegeneratingDescricao] = useState(false);
+  const [descricaoProviderUsado, setDescricaoProviderUsado] = useState('GROQ');
   
   // Estados para modal de edição de imagem
   const [showImageEditModal, setShowImageEditModal] = useState(false);
@@ -1114,7 +1115,7 @@ const Secoes = () => {
   };
 
   // Função para gerar descrição de imagem com IA
-  const gerarDescricaoImagemComIA = async (imagemId, imageFile, imageUrl = null) => {
+  const gerarDescricaoImagemComIA = async (imagemId, imageFile, imageUrl = null, provider = 'GROQ') => {
     const key = `img-${imagemId}`;
     
     try {
@@ -1138,10 +1139,11 @@ const Secoes = () => {
         throw new Error('Imagem não disponível para análise');
       }
       
-      const descricao = await gerarDescricaoImagem(fileToAnalyze);
+      const descricao = await gerarDescricaoImagem(fileToAnalyze, provider);
       
       // Armazenar a descrição gerada e abrir o modal para revisão
       setDescricaoGerada(descricao);
+      setDescricaoProviderUsado(provider);
       setImagemParaDescricao({ imagemId, imageFile, imageUrl });
       setShowDescricaoPreview(true);
       
@@ -2581,10 +2583,11 @@ const Secoes = () => {
     setImagemParaDescricao(null);
   };
 
-  const handleRegenerateDescricao = async () => {
+  const handleRegenerateDescricao = async (provider = null) => {
     if (!imagemParaDescricao) return;
 
     const { imagemId, imageFile, imageUrl } = imagemParaDescricao;
+    const providerToUse = provider || descricaoProviderUsado;
     setIsRegeneratingDescricao(true);
 
     try {
@@ -2601,8 +2604,9 @@ const Secoes = () => {
         throw new Error('Imagem não disponível para análise');
       }
       
-      const novaDescricao = await gerarDescricaoImagem(fileToAnalyze);
+      const novaDescricao = await gerarDescricaoImagem(fileToAnalyze, providerToUse);
       setDescricaoGerada(novaDescricao);
+      setDescricaoProviderUsado(providerToUse);
       
     } catch (error) {
       console.error('Erro ao regenerar descrição:', error);
@@ -2634,7 +2638,7 @@ const Secoes = () => {
     setDescricaoImagemEditando('');
   };
 
-  const handleGerarDescricaoNoModal = async () => {
+  const handleGerarDescricaoNoModal = async (provider = 'GROQ') => {
     if (!imagemEditando) return;
 
     const processedImage = processImageData(imagemEditando);
@@ -2657,7 +2661,7 @@ const Secoes = () => {
         throw new Error('Imagem não disponível para análise');
       }
       
-      const descricao = await gerarDescricaoImagem(fileToAnalyze);
+      const descricao = await gerarDescricaoImagem(fileToAnalyze, provider);
       setDescricaoImagemEditando(descricao);
       showNotification('success', 'Descrição gerada com sucesso! Você pode editá-la antes de salvar.');
       
@@ -3408,6 +3412,7 @@ const Secoes = () => {
           setImagemParaDescricao(null);
         }}
         descricaoGerada={descricaoGerada}
+        provider={descricaoProviderUsado}
         onAccept={handleAcceptDescricao}
         onRegenerate={handleRegenerateDescricao}
         isRegenerating={isRegeneratingDescricao}
