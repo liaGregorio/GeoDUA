@@ -4,7 +4,7 @@ const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 /**
@@ -18,7 +18,7 @@ export const AI_PROVIDERS = {
   },
   GEMINI: {
     id: 'GEMINI',
-    name: 'Google Gemini 2.0 Flash',
+    name: 'Google Gemini 2.5 Flash',
     description: 'Alta qualidade'
   }
 };
@@ -264,7 +264,7 @@ export const getSetupInstructions = (provider = 'GROQ') => {
         'Totalmente gratuito',
         '60 requisições por minuto',
         'Alta qualidade para português',
-        'Modelo Gemini 2.0 Flash',
+        'Modelo Gemini 2.5 Flash',
         'Integração com Google'
       ]
     }
